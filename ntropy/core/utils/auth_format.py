@@ -34,3 +34,5 @@ class Mistralauth(BaseModel):
     name: Optional[str] = Field(default=None)
     api_key: str = Field(default=None)
     other_setting: Optional[dict] = Field(default=None)
+
+

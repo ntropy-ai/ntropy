@@ -5,10 +5,12 @@ providers for models, embeddings
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel, Field, ConfigDict
+from pydantic.fields import PydanticUndefined
 from typing import Union
 import base64
 import json
 from datetime import datetime
+import warnings
 
 from ntropy.core.utils.base_format import Vector, Document, TextChunk
 from ntropy.core.utils.settings import ModelsBaseSettings
@@ -33,8 +35,8 @@ class EmbeddingModels():
         class ModelInputSchema(BaseModel):
             inputText: Union[str, None] = None # Document, TextChunk -> string
             inputImage: Union[str, None] = None  # base64-encoded string
-            embeddingConfig: dict = Field(default_factory=lambda: {
-                "outputEmbeddingLength": [256, 512, 1024]
+            embeddingConfig: Union[dict, None] = Field(default_factory=lambda: {
+                "outputEmbeddingLength": Field(default=512, description="Only the following values are accepted: 256, 512, 1024.", ge=256, le=1024)
             })
         model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
 
@@ -48,8 +50,8 @@ class EmbeddingModels():
         class ModelInputSchema(BaseModel):
             inputText: Union[str, None] = None
             # additional model settings
-            dimensions: int = Field(default=1024, description="Only the following values are accepted: 1024 (default), 512, 256.", ge=256, le=1024)
-            normalize: Union[bool, None] = None
+            dimensions: Union[int, None] = Field(default=1024, description="Only the following values are accepted: 1024 (default), 512, 256.", ge=256, le=1024)
+            normalize: Union[bool, None] = True
         model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
 
 
@@ -92,46 +94,51 @@ def require_login(func):
     return wrapper
 
 
-def list_models():
-    embeddings_models =  ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].keys()
-    return {
-        "embeddings_models": list(embeddings_models)
-    }
-
 
 @require_login
-def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict):
+def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict) -> Vector:
     accept = "application/json"
     content_type = "application/json"
-    output_metadata = {
-                'model': model,
-                'model_settings': model_settings,
-                'timestamp': datetime.now()
-            }
-    embedding_model_setting = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].get(model).ModelInputSchema
 
+    embedding_model_setting = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].get(model).ModelInputSchema
+    if model_settings is None:
+        model_settings = dict()
+        warnings.warn(f"Model settings for model {model} not provided. Using default settings.")
+        model_settings_ = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].get(model)().model_settings    
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. please check the model name.")
-    
+    output_metadata = {
+            'model': model,
+            'model_settings': model_settings,
+            'timestamp': datetime.now()
+        }
+        
     text_input = document.page_content if isinstance(document, Document) or isinstance(document, str) else document.chunk
     image_input = document.image if isinstance(document, Document) else None
-    body_fields = embedding_model_setting.model_fields
-    for key, value in body_fields.items():
-        if key == "inputText":
-            body_fields["inputText"] = text_input
-            output_metadata['chunk'] = document.chunk_number if hasattr(document, 'chunk_number') else None
-            output_metadata['content'] = text_input
 
-        elif key == "inputImage":
-            body_fields["inputImage"] = base64.b64encode(open(image_input, 'rb').read()).decode('utf8') if image_input else None
-            output_metadata['image_path'] = image_input
-            
-        elif key == "model_name":
-            body_fields["model_name"] = model
-        elif key in model_settings:
-            body_fields[key] = model_settings[key]
-        else:
+    body_fields = {key: value.default for key, value in embedding_model_setting.model_fields.items()}
+
+    # Update body_fields with provided model settings
+    for key, value in model_settings.items():
+        if key in body_fields:
             body_fields[key] = value
+
+    # Set inputText and inputImage fields
+    body_fields["inputText"] = text_input
+    output_metadata['chunk'] = document.chunk_number if hasattr(document, 'chunk_number') else None
+    output_metadata['content'] = text_input
+
+    if image_input:
+        body_fields["inputImage"] = base64.b64encode(open(image_input, 'rb').read()).decode('utf8')
+        output_metadata['image_path'] = image_input
+
+    # Set model_name field
+    body_fields["model_name"] = model
+
+    # Remove any fields with PydanticUndefined value
+    keys_to_delete = [key for key, value in body_fields.items() if value is PydanticUndefined]
+    for key in keys_to_delete:
+        del body_fields[key]
     try:
         embedding_model_setting.model_validate(body_fields) # validate with pydantic
     except Exception:
@@ -140,7 +147,6 @@ def create_embeddings(model: str, document: Document | TextChunk | str, model_se
         del body_fields["model_name"]
     client = get_client()
 
-    print(body_fields)
     response = client.invoke_model(
         body=json.dumps(body_fields), modelId=model, accept=accept, contentType=content_type
     )
