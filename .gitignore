@@ -1,0 +1,11 @@
+__pycache__/
+.DS_Store
+.vscode/
+.idea/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.tox/
+.venv/
+.venv/
+core/utils/db/Login.db
