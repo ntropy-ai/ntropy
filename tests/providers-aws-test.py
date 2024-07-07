@@ -30,6 +30,9 @@ def test_aws_connection_init():
     assert aws_conn.region_name == "us-west-2"
     assert aws_conn.service_name == "bedrock"
 
+
+
+
 # Test AWSConnection init_connection
 @patch('boto3.client')
 def test_aws_connection_init_connection(mock_boto_client):
@@ -78,4 +81,5 @@ def test_create_embeddings(mock_get_client, mock_models_base_settings):
     assert vector.content == "This is a test document. This is a test document. This is a test document. This is a test document. This is a test document."
     assert vector.metadata['model'] == "amazon.titan-embed-text-v2:0"
     assert vector.metadata['model_settings'] == model_settings
+
 

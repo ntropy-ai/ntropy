@@ -28,15 +28,15 @@ class ChromaEmbeddings(EmbeddingFunction):
         self.embeddings_model_settings = self.embeddings_model_function().model_settings
         self.embeddings_model_input_schema = self.embeddings_model_function().ModelInputSchema
 
-
-                
-
     def __call__(self, documents: NtropyDocument) -> Embeddings:
         embeddings: Embeddings = []
         for doc in documents:
             # call the provider embeddings function with the model_settings and the documents
-            embedding = self.provider_embeddings_function(model=self.embeddings_model_function().model_name, document=doc, model_settings=self.user_model_settings)
+            embedding = self.provider_embeddings_function(
+                model=self.embeddings_model_function().model_name,
+                document=doc,
+                model_settings=self.user_model_settings
+            )
             embeddings.extend(embedding.vector)
         print(embeddings)
         return embeddings
-    

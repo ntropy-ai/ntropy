@@ -81,16 +81,25 @@ class AWSConnection:
             self.init_connection()
         return self.client
     
+def get_client():
+    return ConnectionManager().get_connection("AWS").get_client()
+
+def require_login(func):
+    def wrapper(*args, **kwargs):
+        if ConnectionManager().get_connection("AWS") is None:
+            raise Exception("AWS connection not found. Please initialize the connection.")
+        return func(*args, **kwargs)
+    return wrapper
+
+
 def list_models():
     embeddings_models =  ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].keys()
     return {
         "embeddings_models": list(embeddings_models)
     }
 
-def get_client():
-    return ConnectionManager().get_connection("AWS").get_client()
 
-
+@require_login
 def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict):
     accept = "application/json"
     content_type = "application/json"

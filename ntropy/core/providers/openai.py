@@ -96,7 +96,15 @@ class CLIPmodel():
             raise ValueError("input_document must contain either text or image content.")
         return embeddings
 
+def get_client():
+    return ConnectionManager().get_connection("OpenAI").get_client()
 
+def require_login(func):
+    def wrapper(*args, **kwargs):
+        if ConnectionManager().get_connection("OpenAI") is None:
+            raise Exception("OpenAI connection not found. Please initialize the connection.")
+        return func(*args, **kwargs)
+    return wrapper
 
 def list_models():
     embeddings_models =  ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].keys()
@@ -104,8 +112,6 @@ def list_models():
         "embeddings_models": list(embeddings_models)
     }
 
-def get_client():
-    return ConnectionManager().get_connection("OpenAI").get_client()
 
 
 def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict = None):
