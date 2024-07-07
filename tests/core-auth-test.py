@@ -2,6 +2,7 @@ import os
 import pytest
 from ntropy.core.auth import BaseAuth
 
+
 @pytest.fixture
 def setup_db():
     # Setup: Create a temporary database and key file

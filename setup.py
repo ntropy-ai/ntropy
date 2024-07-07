@@ -3,17 +3,27 @@ from setuptools import setup, find_packages
 setup(
     name='ntropy',
     version='0.0.1',
-    packages=find_packages(),
+    packages=find_packages(include=['ntropy', 'ntropy.*']),
     install_requires=[
         'pydantic==2.8.2',
         'cryptography==42.0.7',
         'tabulate==0.9.0',
-        'torch==1.13.0',
         'Pillow==10.4.0'
     ],
     extras_require={
-        'aws': ['boto3', 'botocore'],
-        'openai': ['openai', 'clip @ git+https://github.com/openai/CLIP.git']
+        'providers-aws': [
+            'boto3', 
+            'botocore'
+        ],
+        'providers-openai': [
+            'openai', 
+            'clip @ git+https://github.com/openai/CLIP.git',
+            'torch==2.3.1',
+            'torchvision==0.18.1'
+        ],
+        'document-instance-pdf': [
+            'pymupdf'
+        ]
     },
     # Additional metadata
     author='Hugo Le Belzic',
@@ -26,4 +36,6 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.10',
+    tests_require=['pytest', 'requests'],
+    test_suite='tests'
 )
