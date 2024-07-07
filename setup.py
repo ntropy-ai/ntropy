@@ -23,6 +23,9 @@ setup(
         ],
         'document-instance-pdf': [
             'pymupdf'
+        ],
+        'rag-vectorstore-chroma': [
+            'chromadb'
         ]
     },
     # Additional metadata
