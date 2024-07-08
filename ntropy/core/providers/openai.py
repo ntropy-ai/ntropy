@@ -13,7 +13,7 @@ import warnings
 
 
 
-class EmbeddingModels():
+class OpenAIEmbeddingModels():
 
     # https://github.com/openai/CLIP
     class OpenAIclipVIT32(BaseModel):
@@ -53,7 +53,7 @@ class CLIPmodel():
     _model_cache = {}
     # ensure the model is loaded only once
     def __init__(self, model: str, model_settings: dict = None):
-        self.model = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].get(model)().config['model_name']
+        self.model = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model)().config['model_name']
         self.device = model_settings.get("device") if model_settings and "device" in model_settings else "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
         if model not in self._model_cache:
             self.clip_model_pipe, self.clip_processor = OpenaiCLIP.load(self.model, device=self.device)
@@ -107,21 +107,21 @@ def require_login(func):
     return wrapper
 
 def list_models():
-    embeddings_models =  ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].keys()
+    embeddings_models =  ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].keys()
     return {
         "embeddings_models": list(embeddings_models)
     }
 
 
 
-def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict = None):
+def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_settings: dict = None):
     output_metadata = {
         'model': model,
         'model_settings': model_settings,
         'timestamp': datetime.now()
     }
     
-    embedding_model_setting = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].get(model).ModelInputSchema
+    embedding_model_setting = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model).ModelInputSchema
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. Please check the model name.")
 
@@ -133,7 +133,7 @@ def create_embeddings(model: str, document: Document | TextChunk | str, model_se
     except Exception:
         raise ValueError(f"Error. please check if the settings are correct. use get_model_settings(model) to check the correct settings.")
 
-    if ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].get(model)().config['variant'] == 'clip':
+    if ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model)().config['variant'] == 'clip':
         # cuz our function takes the document object directly
         embeddings =  CLIPmodel(model).create_embeddings_clip(body_fields, model_settings)
 

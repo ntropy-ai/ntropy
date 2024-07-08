@@ -22,7 +22,7 @@ pre defined models schema for aws requests
 service used: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/bedrock.html
 """
 
-class EmbeddingModels():
+class AWSEmbeddingModels():
     # https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-embed-mm.html
 
     class AmazonTitanMultimodalEmbeddingsG1Input(BaseModel):
@@ -96,15 +96,15 @@ def require_login(func):
 
 
 @require_login
-def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict) -> Vector:
+def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settings: dict) -> Vector:
     accept = "application/json"
     content_type = "application/json"
 
-    embedding_model_setting = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].get(model).ModelInputSchema
+    embedding_model_setting = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_models"]["models_map"].get(model).ModelInputSchema
     if model_settings is None:
         model_settings = dict()
         warnings.warn(f"Model settings for model {model} not provided. Using default settings.")
-        model_settings_ = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_model"]["models_map"].get(model)().model_settings    
+        model_settings_ = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_models"]["models_map"].get(model)().model_settings    
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. please check the model name.")
     output_metadata = {
