@@ -2,8 +2,6 @@
 providers for models, embeddings
 """
 
-import boto3
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.fields import PydanticUndefined
 from typing import Union
@@ -23,20 +21,20 @@ service used: https://boto3.amazonaws.com/v1/documentation/api/latest/reference/
 """
 
 class AWSEmbeddingModels():
+    
     # https://docs.aws.amazon.com/bedrock/latest/userguide/model-parameters-titan-embed-mm.html
-
     class AmazonTitanMultimodalEmbeddingsG1Input(BaseModel):
         model_name: str = "amazon.titan-embed-image-v1"
         model_settings: dict = Field(default_factory=lambda: {
             'embeddingConfig': {
-                'outputEmbeddingLength': "Only the following values are accepted: 256, 512, 1024."
+                'outputEmbeddingLength': "Only the following values are accepted: 256, 384, 1024."
             }
         })
         class ModelInputSchema(BaseModel):
             inputText: Union[str, None] = None # Document, TextChunk -> string
             inputImage: Union[str, None] = None  # base64-encoded string
             embeddingConfig: Union[dict, None] = Field(default_factory=lambda: {
-                "outputEmbeddingLength": Field(default=512, description="Only the following values are accepted: 256, 512, 1024.", ge=256, le=1024)
+                "outputEmbeddingLength": Field(default=1024, description="Only the following values are accepted: 256, 384, 1024.", enum=[256, 384, 1024])
             })
         model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
 
@@ -56,32 +54,6 @@ class AWSEmbeddingModels():
 
 
 
-class AWSConnection:
-    def __init__(self, access_key: str, secret_access_key: str, other_setting: dict, **kwargs):
-        self.aws_access_key_id = access_key
-        self.aws_secret_access_key = secret_access_key
-        # other settings
-        self.region_name = other_setting.get("region_name", "us-east-1") # default to us-east-1 if not provided
-        self.service_name = other_setting.get("service_name", "bedrock")
-        self.client = None
-
-    def init_connection(self):
-        try:
-            self.client = boto3.client(
-                service_name=self.service_name,
-                aws_access_key_id=self.aws_access_key_id,
-                aws_secret_access_key=self.aws_secret_access_key,
-                region_name=self.region_name
-            )
-            print("AWS connection initialized successfully.")
-            
-        except (NoCredentialsError, PartialCredentialsError) as e:
-            raise Exception(f"Error initializing AWS connection: {e}")
-
-    def get_client(self):
-        if self.client is None:
-            self.init_connection()
-        return self.client
     
 def get_client():
     return ConnectionManager().get_connection("AWS").get_client()

@@ -1,7 +1,8 @@
 from unittest.mock import patch, MagicMock
-from ntropy.core.providers.openai import OpenAIConnection, get_client, OpenAIEmbeddings
+from ntropy.core.embeddings.openai import get_client, OpenAIEmbeddings
+from ntropy.core.providers import OpenAIConnection
 from ntropy.core.utils.base_format import TextChunk, Document
-from ntropy.core.providers import list_models
+from ntropy.core.embeddings import list_models
 import pytest
 import requests
 import os
@@ -43,7 +44,7 @@ def test_get_client(mock_get_connection):
     mock_conn.get_client.assert_called_once()
 
 # Test create_embeddings function
-@patch('ntropy.core.providers.openai.get_client')
+@patch('ntropy.core.embeddings.openai.get_client')
 def test_create_embeddings(mock_get_client, mock_models_base_settings):
     mock_client = MagicMock()
     mock_get_client.return_value = mock_client
@@ -62,7 +63,7 @@ def test_create_embeddings(mock_get_client, mock_models_base_settings):
 
 
 # Test create_embeddings function for image
-@patch('ntropy.core.providers.openai.get_client')
+@patch('ntropy.core.embeddings.openai.get_client')
 def test_create_embeddings_image(mock_get_client, mock_models_base_settings):
     mock_client = MagicMock()
     mock_get_client.return_value = mock_client

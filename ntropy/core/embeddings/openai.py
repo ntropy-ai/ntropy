@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Union
-import openai
 
 import clip as OpenaiCLIP # pip install git+https://github.com/openai/CLIP.git
 from ntropy.core.utils.settings import ModelsBaseSettings
@@ -30,23 +29,6 @@ class OpenAIEmbeddingModels():
 
         model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
 
-class OpenAIConnection():
-    def __init__(self, api_key: str, other_setting: dict, **kwargs):
-        self.api_key = api_key
-        self.client = None
-
-    def init_connection(self):
-        try: 
-            self.client = openai.OpenAI(api_key=self.api_key)
-            print("OpenAI connection initialized successfully.")
-        except Exception as e:
-            raise Exception(f"Error initializing OpenAI connection: {e}")
-        
-
-    def get_client(self):
-        if self.client is None:
-            self.init_connection()
-        return self.client
     
 
 class CLIPmodel():
@@ -121,6 +103,8 @@ def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_set
         'timestamp': datetime.now()
     }
     
+    if model not in ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"]:
+        raise ValueError(f"Model {model} not found in OpenAI settings.")
     embedding_model_setting = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model).ModelInputSchema
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. Please check the model name.")

@@ -1,10 +1,10 @@
 import pytest
 import json
 from unittest.mock import patch, MagicMock
-from ntropy.core.providers.aws import AWSConnection, AWSEmbeddings, get_client
-from ntropy.core.utils.base_format import Document, TextChunk
-from ntropy.core.utils.settings import ModelsBaseSettings
-from ntropy.core.providers import list_models
+from ntropy.core.providers import AWSConnection
+from ntropy.core.embeddings.aws import AWSEmbeddings, get_client
+from ntropy.core.utils.base_format import Document
+from ntropy.core.embeddings import list_models
 
 # Mock settings for ModelsBaseSettings
 @pytest.fixture
