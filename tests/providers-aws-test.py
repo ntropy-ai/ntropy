@@ -33,7 +33,6 @@ def test_aws_connection_init():
 
 
 
-
 # Test AWSConnection init_connection
 @patch('boto3.client')
 def test_aws_connection_init_connection(mock_boto_client):
@@ -85,7 +84,7 @@ def test_create_embeddings(mock_get_client, mock_awsembeddings, mock_models_base
         'model_settings': {"dimensions": 512, "normalize": True}
     }
 
-    document = Document(id="doc1", page_content="This is a test document. This is a test document. This is a test document. This is a test document. This is a test document.", page_number=1)
+    document = Document(id="doc1", content="This is a test document. This is a test document. This is a test document. This is a test document. This is a test document.", page_number=1)
     model_settings = {"dimensions": 512, "normalize": True}
     vector = mock_awsembeddings.return_value
 

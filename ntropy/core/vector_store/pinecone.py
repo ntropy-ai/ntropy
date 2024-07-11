@@ -32,6 +32,12 @@ class Pinecone:
             warnings.warn(f"No index name specified, using default index {self.index_name}")
         else:
             self.index_name = index_name
+            try:
+                self.pinecone_index = self.get_index(self.index_name)
+            except:
+                raise Exception(f"Index {self.index_name} not found, please create an index first !")
+                
+                
         
     def create_index(self, index_name: str, dimension: int, metric: str, spec: ServerlessSpec = ServerlessSpec(cloud='aws', region='us-east-1')):
         self.pinecone_index = self.client.create_index(
@@ -48,11 +54,15 @@ class Pinecone:
     def get_index(self, index_name: str):
         return self.client.Index(index_name)
     
-    
+
     def add_vectors(self, vectors: List[Vector], namespace: str = None):
+
+        if vectors[0].document_id or vectors[0].size:
+            warnings.warn("Only the fields 'id' and 'values' are supported by Pinecone. The remaining fields will be stored in 'metadata'.")
+
         self.get_index(self.index_name).upsert(
             vectors=[
-                {"id": v.id, "values": v.vector,'document_id': v.document_id, 'data_type': v.data_type, 'content': v.content, 'metadata': v.metadata} for v in vectors
+                {"id": v.id, "values": v.vector, 'metadata': {k: v for k, v in {**v.metadata, 'size': v.size, 'content': v.content, "document_id": v.document_id, "data_type": v.data_type}.items() if v is not None}} for v in vectors
             ],
             namespace=namespace
         )
@@ -73,9 +83,20 @@ class Pinecone:
             raise Exception(f"model {model} not found !")
         
 
+    def fetch_vectors(self, ids: List[str]):
+        return self.get_index(self.index_name).fetch(ids=ids)
 
     # this function returns a vector, it will be modified to return the results directly
-    def query(self, query_vector: List[float] = None, model_settings: dict = None, model: str = None, query_text: str = None, query_image: str = None, top_k: int = 5, include_values: bool = False, namespace: str = None):   
+    def query(self, 
+              query_vector: List[float] = None, 
+              model_settings: dict = None, 
+              model: str = None, 
+              query_text: str = None, 
+              query_image: str = None, 
+              top_k: int = 5, 
+              include_values: bool = False, 
+              namespace: str = None) -> list():
+           
         # the model name is required
         query_dimension = self.client.describe_index(self.index_name)["dimension"]
         metric = self.client.describe_index(self.index_name)["metric"]
@@ -105,9 +126,9 @@ class Pinecone:
                 raise Exception(f"model {model} not found !")
 
             if query_text:
-                document = Document(page_content=query_text, page_number=-1)
+                document = Document(content=query_text, page_number=-1, data_type="text")
             elif query_image:
-                document = Document(image=query_image, page_number=-1)
+                document = Document(image=query_image, page_number=-1, data_type="image")
             else:
                 raise Exception("query_text or query_image is required !")
             query_vector = query_vector_func(model, document, model_settings)
@@ -115,13 +136,33 @@ class Pinecone:
         if query_vector.size != query_dimension:
             warnings.warn(f"query_vector shape does not match the vector store dimension (which is {query_dimension}). use model_settings to set the correct dimension !")
 
-
         results =  self.get_index(self.index_name).query(
-            query_vector=query_vector.vector,
+            vector=query_vector.vector,
             top_k=top_k,
             include_values=include_values,
             namespace=namespace
         )
 
-        return results
+        results_ids = {}
+        for v in results['matches']:
+            results_ids[v['id']] = v['score']
+
+        original_vectors = self.fetch_vectors(list(results_ids.keys())) # use the fetch vectors by id to fetch back the vectors and its content inside metadata from pinecone
+        # remap the vector to map the original universal format
+        results_vectors = []
+        for vector in original_vectors['vectors']:
+            v = original_vectors['vectors'][vector]
+            results_vectors.append(
+                    Vector(
+                    id=v['id'], 
+                    score=results_ids[v['id']],
+                    document_id=v['metadata']['document_id'],
+                    vector=v['values'], 
+                    content=v['metadata']['content'],
+                    data_type=v['metadata']['data_type'],
+                    size=v['metadata']['size'],
+                    metadata={k: v for k, v in v['metadata'].items() if k not in ['content', 'document_id', 'size', 'data_type']}
+                )
+            )
+        return results_vectors
 

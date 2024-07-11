@@ -11,8 +11,8 @@ class BaseDocument(BaseModel):
     metadata: dict = Field(default={})
 
 class Document(BaseDocument):
-    page_number: int
-    page_content: Union[str, None] = None
+    page_number: Union[int, None] = None
+    content: Union[str, None] = None
     image: Union[str, None] = None
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -22,15 +22,17 @@ class TextChunk(BaseDocument):
     chunk_number: int
     document_id: str
 
-
 class Vector(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     document_id: str
+    score: Union[float, None] = None # only for results vector
     vector: List[float] = Field()
     size: int
     data_type: str
     content: Union[str, None] = None
     metadata: dict = Field(default={})
 
+    class Config:
+        extra = "allow"
 
 

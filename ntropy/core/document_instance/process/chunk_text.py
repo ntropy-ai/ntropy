@@ -16,7 +16,7 @@ def BasicTextChunk(chunk_size: int, document: Document) -> List[TextChunk]:
     - List[TextChunk]: A list of TextChunk objects, each representing a chunk of the original document's text.
     """
     chunk_list = []
-    text = document.page_content
+    text = document.content
     for i in range(0, len(text), chunk_size):
         chunk = text[i:i + chunk_size]
         text_chunk = TextChunk(
@@ -48,7 +48,7 @@ def RecursiveTextChunk(chunk_size: int, document: Document, start_index: int = 0
     if chunk_list is None:
         chunk_list = []
 
-    text = document.page_content
+    text = document.content
     if start_index >= len(text):
         return chunk_list
 
@@ -80,7 +80,7 @@ def SentenceAwareChunk(chunk_size: int, document: Document) -> List[TextChunk]:
     - List[TextChunk]: A list of TextChunk objects, each representing a chunk of the original document's text.
     """
     chunk_list = []
-    text = document.page_content
+    text = document.content
     sentences = re.split(r'(?<=[.!?]) +', text)
     current_chunk = ""
     chunk_number = 0

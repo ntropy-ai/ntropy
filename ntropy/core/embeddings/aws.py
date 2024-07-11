@@ -90,7 +90,7 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
             'timestamp': datetime.now()
         }
         
-    text_input = document.page_content if isinstance(document, Document) or isinstance(document, str) else document.chunk
+    text_input = document.content if isinstance(document, Document) or isinstance(document, str) else document.chunk
     image_input = document.image if isinstance(document, Document) else None
 
     body_fields = {key: value.default for key, value in embedding_model_setting.model_fields.items()}

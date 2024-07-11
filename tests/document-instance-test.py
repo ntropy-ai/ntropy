@@ -19,7 +19,7 @@ def sample_pdf(tmp_path):
 def sample_document():
     return Document(
         page_number=0,
-        page_content="This is a sample document. It contains multiple sentences. For testing purposes.",
+        content="This is a sample document. It contains multiple sentences. For testing purposes.",
         image=None,
         metadata={"type": "text"}
     )

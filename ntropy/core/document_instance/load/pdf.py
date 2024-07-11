@@ -20,7 +20,7 @@ class PDFLoader:
             documents.append(
                 Document(
                     page_number=page_number,
-                    page_content=text_content,
+                    content=text_content,
                     image=None,
                     metadata={"type": "text"}
                 )
@@ -47,7 +47,7 @@ class PDFLoader:
                 documents.append(
                     Document(
                         page_number=page_number,
-                        page_content=None,
+                        content=None,
                         image=image_path,
                         metadata={"type": "image"}
                     )

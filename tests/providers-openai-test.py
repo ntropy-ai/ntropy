@@ -73,7 +73,7 @@ def test_create_embeddings_image(mock_get_client, mock_models_base_settings):
     image_path = "/tmp/sample_image.jpg"
     with open(image_path, "wb") as f:
         f.write(response.content)
-    document = Document(id="doc1", page_content=None, image=image_path, page_number=1)
+    document = Document(id="doc1", content=None, image=image_path, page_number=1)
     model_settings = {"device": "cpu"}
     vector = OpenAIEmbeddings("openai.clip-vit-base-patch32", document, model_settings)
     os.remove(image_path)

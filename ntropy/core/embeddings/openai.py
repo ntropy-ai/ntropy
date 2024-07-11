@@ -52,7 +52,7 @@ class CLIPmodel():
             raise ValueError("input_document is required for creating embeddings.")
 
         if isinstance(input_document, Document):
-            text_input = input_document.page_content
+            text_input = input_document.content
             if text_input:
                 warnings.warn("The input_document is a Document object. ClIP embeddings model has token limits. Please use TextChunk for embedding if you have long text.")
             image_input = input_document.image
@@ -124,7 +124,7 @@ def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_set
         # cuz our function takes the document object directly
         embeddings =  CLIPmodel(model).create_embeddings_clip(body_fields, model_settings)
 
-    content = document.page_content if isinstance(document, Document) else document.chunk if isinstance(document, TextChunk) else None
+    content = document.image if isinstance(document, Document) and document.image else document.content if isinstance(document, Document) else document.chunk if isinstance(document, TextChunk) else None
 
     return Vector(
         document_id=document.id,
