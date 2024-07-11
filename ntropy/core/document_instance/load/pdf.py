@@ -5,9 +5,9 @@ import os
 
 
 class PDFLoader:
-    def __init__(self, file_path: str, img_path: str):
+    def __init__(self, file_path: str, output_img_path: str = None):
         self.file_path = file_path
-        self.img_path = img_path
+        self.output_img_path = output_img_path
         self.pdf = pymupdf.open(file_path)
 
     
