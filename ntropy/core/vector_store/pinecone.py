@@ -69,7 +69,7 @@ class Pinecone:
 
 
     # set embeddings model default
-    def set_embeddings_model(self, model: str, model_settings: dict):
+    def set_embeddings_model(self, model: str, model_settings: dict = None):
         self.embedding_model_settings = model_settings
         self.embedding_model_name = model
         for provider in ModelsBaseSettings().providers_list_map:
