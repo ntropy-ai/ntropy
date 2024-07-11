@@ -81,6 +81,9 @@ class CLIPmodel():
 def get_client():
     return ConnectionManager().get_connection("OpenAI").get_client()
 
+def get_other_settings():
+    return ConnectionManager().get_connection("OpenAI").get_other_setting()
+
 def require_login(func):
     def wrapper(*args, **kwargs):
         if ConnectionManager().get_connection("OpenAI") is None:

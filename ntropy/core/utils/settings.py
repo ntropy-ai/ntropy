@@ -8,11 +8,11 @@ class ModelsBaseSettings():
         self.providers_list_map = {}
 
         try:
-            from ntropy.core.providers.aws import AWSConnection
-            from ntropy.core.providers.aws import AWSEmbeddingModels
-            from ntropy.core.providers.aws import AWSEmbeddings
+            from ntropy.core.providers import AWSConnection
+            from ntropy.core.embeddings.aws import AWSEmbeddingModels
+            from ntropy.core.embeddings.aws import AWSEmbeddings
             self.providers_list_map["AWS"] = {
-                "auth": AWSauth,
+                "auth": AWSAuth,
                 "connect": AWSConnection,
                 "functions": {
                     "embeddings": AWSEmbeddings
@@ -29,11 +29,11 @@ class ModelsBaseSettings():
             pass
 
         try:
-            from ntropy.core.providers.openai import OpenAIConnection
-            from ntropy.core.providers.openai import OpenAIEmbeddingModels
-            from ntropy.core.providers.openai import OpenAIEmbeddings
+            from ntropy.core.providers import OpenAIConnection
+            from ntropy.core.embeddings.openai import OpenAIEmbeddingModels
+            from ntropy.core.embeddings.openai import OpenAIEmbeddings
             self.providers_list_map["OpenAI"] = {
-                "auth": OpenAIauth,
+                "auth": OpenAIAuth,
                 "connect": OpenAIConnection,
                 "functions": {
                     "embeddings": OpenAIEmbeddings
@@ -43,6 +43,16 @@ class ModelsBaseSettings():
                         'openai.clip-vit-base-patch32': OpenAIEmbeddingModels.OpenAIclipVIT32
                     }
                 }
+            }
+        except ImportError:
+            pass
+
+
+        try: 
+            from ntropy.core.providers import PineconeConnection
+            self.providers_list_map["Pinecone"] = {
+                "auth": PineconeAuth,
+                "connect": PineconeConnection,
             }
         except ImportError:
             pass

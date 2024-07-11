@@ -24,8 +24,8 @@ setup(
         'document-instance-pdf': [
             'pymupdf'
         ],
-        'rag-vectorstore-chroma': [
-            'chromadb'
+        'rag-vectorstore-pinecone': [
+            'pinecone-client'
         ]
     },
     # Additional metadata

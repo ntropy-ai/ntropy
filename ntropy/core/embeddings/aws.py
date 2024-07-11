@@ -58,6 +58,9 @@ class AWSEmbeddingModels():
 def get_client():
     return ConnectionManager().get_connection("AWS").get_client()
 
+def get_other_settings():
+    return ConnectionManager().get_connection("AWS").get_other_setting()
+
 def require_login(func):
     def wrapper(*args, **kwargs):
         if ConnectionManager().get_connection("AWS") is None:
@@ -79,6 +82,8 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
         model_settings_ = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_models"]["models_map"].get(model)().model_settings    
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. please check the model name.")
+    
+    
     output_metadata = {
             'model': model,
             'model_settings': model_settings,
@@ -106,7 +111,12 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
 
     # Set model_name field
     body_fields["model_name"] = model
-
+    
+    # check if the keys of the input model_settings are actual keys of the model
+    for key in model_settings.keys():
+        if key not in body_fields:
+            raise ValueError(f"Model setting [{key}] does not exist for model {model}.")
+    
     # Remove any fields with PydanticUndefined value
     keys_to_delete = [key for key, value in body_fields.items() if value is PydanticUndefined]
     for key in keys_to_delete:

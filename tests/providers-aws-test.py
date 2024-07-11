@@ -2,7 +2,7 @@ import pytest
 import json
 from unittest.mock import patch, MagicMock
 from ntropy.core.providers import AWSConnection
-from ntropy.core.embeddings.aws import AWSEmbeddings, get_client
+from ntropy.core.embeddings.aws import get_client, AWSEmbeddings
 from ntropy.core.utils.base_format import Document
 from ntropy.core.embeddings import list_models
 
@@ -65,8 +65,8 @@ def test_get_client(mock_get_connection):
 
 
 
-@patch('ntropy.core.providers.aws.AWSEmbeddings')
-@patch('ntropy.core.providers.aws.get_client')
+@patch('ntropy.core.embeddings.aws.AWSEmbeddings')
+@patch('ntropy.core.embeddings.aws.get_client')
 def test_create_embeddings(mock_get_client, mock_awsembeddings, mock_models_base_settings):
     mock_client = MagicMock()
     mock_get_client.return_value = mock_client

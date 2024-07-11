@@ -2,12 +2,14 @@
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 import openai
+from pinecone import Pinecone
 
 
-class OpenAIConnection():
+class OpenAIConnection:
     def __init__(self, api_key: str, other_setting: dict, **kwargs):
         self.api_key = api_key
         self.client = None
+        self.other_setting = other_setting
 
     def init_connection(self):
         try: 
@@ -22,8 +24,12 @@ class OpenAIConnection():
             self.init_connection()
         return self.client
     
+    def get_other_setting(self):
+        return self.other_setting
+    
 class AWSConnection:
     def __init__(self, access_key: str, secret_access_key: str, other_setting: dict, **kwargs):
+        self.other_setting = other_setting
         self.aws_access_key_id = access_key
         self.aws_secret_access_key = secret_access_key
         # other settings
@@ -48,3 +54,28 @@ class AWSConnection:
         if self.client is None:
             self.init_connection()
         return self.client
+    
+    def get_other_setting(self):
+        return self.other_setting
+    
+
+class PineconeConnection:
+    def __init__(self, api_key: str, other_setting: dict, **kwargs):
+        self.api_key = api_key
+        self.client = None
+        self.other_setting = other_setting
+
+    def init_connection(self):
+        try:
+            self.client = Pinecone(api_key=self.api_key)
+            print("Pinecone connection initialized successfully.")
+        except Exception as e:
+            raise Exception(f"Error initializing Pinecone connection: {e}")
+        
+    def get_client(self):
+        if self.client is None:
+            self.init_connection()
+        return self.client
+    
+    def get_other_setting(self):
+        return self.other_setting
