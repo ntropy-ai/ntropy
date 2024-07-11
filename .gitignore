@@ -9,3 +9,7 @@ __pycache__/
 .venv/
 .venv/
 core/utils/db/Login.db
+build/
+dist/
+ntropy.egg-info/
+local_test/**

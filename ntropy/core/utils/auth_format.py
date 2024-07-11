@@ -3,7 +3,7 @@ from typing import List, Union, Optional
 from uuid import uuid4
 
 # AWS: https://aws.amazon.com/
-class AWSauth(BaseModel):
+class AWSAuth(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     service_name: str = Field(default="AWS")
     name: Optional[str] = Field(default=None)
@@ -12,7 +12,7 @@ class AWSauth(BaseModel):
     other_setting: Optional[dict] = Field(default=None)
 
 # OpenAI: https://openai.com/
-class OpenAIauth(BaseModel):
+class OpenAIAuth(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     service_name: str = Field(default="OpenAI")
     name: Optional[str] = Field(default=None)
@@ -20,7 +20,7 @@ class OpenAIauth(BaseModel):
     other_setting: Optional[dict] = Field(default=None)
 
 # Anthropic: https://www.anthropic.com/
-class Anthropicauth(BaseModel):
+class AnthropicAuth(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     service_name: str = Field(default="Anthropic")
     name: Optional[str] = Field(default=None)
@@ -28,9 +28,18 @@ class Anthropicauth(BaseModel):
     other_setting: Optional[dict] = Field(default=None)
 
 # Mistral: https://www.mistralai.com/
-class Mistralauth(BaseModel):
+class MistralAuth(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().hex)
     service_name: str = Field(default="Mistral")
+    name: Optional[str] = Field(default=None)
+    api_key: str = Field(default=None)
+    other_setting: Optional[dict] = Field(default=None)
+
+
+# Pinecone Vector Store: https://pinecone.io/
+class PineconeAuth(BaseModel):
+    id: str = Field(default_factory=lambda: uuid4().hex)
+    service_name: str = Field(default="Pinecone")
     name: Optional[str] = Field(default=None)
     api_key: str = Field(default=None)
     other_setting: Optional[dict] = Field(default=None)

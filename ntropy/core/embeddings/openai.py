@@ -1,6 +1,5 @@
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Union
-import openai
 
 import clip as OpenaiCLIP # pip install git+https://github.com/openai/CLIP.git
 from ntropy.core.utils.settings import ModelsBaseSettings
@@ -13,7 +12,7 @@ import warnings
 
 
 
-class EmbeddingModels():
+class OpenAIEmbeddingModels():
 
     # https://github.com/openai/CLIP
     class OpenAIclipVIT32(BaseModel):
@@ -30,30 +29,13 @@ class EmbeddingModels():
 
         model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
 
-class OpenAIConnection():
-    def __init__(self, api_key: str, other_setting: dict, **kwargs):
-        self.api_key = api_key
-        self.client = None
-
-    def init_connection(self):
-        try: 
-            self.client = openai.OpenAI(api_key=self.api_key)
-            print("OpenAI connection initialized successfully.")
-        except Exception as e:
-            raise Exception(f"Error initializing OpenAI connection: {e}")
-        
-
-    def get_client(self):
-        if self.client is None:
-            self.init_connection()
-        return self.client
     
 
 class CLIPmodel():
     _model_cache = {}
     # ensure the model is loaded only once
     def __init__(self, model: str, model_settings: dict = None):
-        self.model = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].get(model)().config['model_name']
+        self.model = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model)().config['model_name']
         self.device = model_settings.get("device") if model_settings and "device" in model_settings else "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
         if model not in self._model_cache:
             self.clip_model_pipe, self.clip_processor = OpenaiCLIP.load(self.model, device=self.device)
@@ -70,7 +52,7 @@ class CLIPmodel():
             raise ValueError("input_document is required for creating embeddings.")
 
         if isinstance(input_document, Document):
-            text_input = input_document.page_content
+            text_input = input_document.content
             if text_input:
                 warnings.warn("The input_document is a Document object. ClIP embeddings model has token limits. Please use TextChunk for embedding if you have long text.")
             image_input = input_document.image
@@ -96,26 +78,37 @@ class CLIPmodel():
             raise ValueError("input_document must contain either text or image content.")
         return embeddings
 
+def get_client():
+    return ConnectionManager().get_connection("OpenAI").get_client()
 
+def get_other_settings():
+    return ConnectionManager().get_connection("OpenAI").get_other_setting()
+
+def require_login(func):
+    def wrapper(*args, **kwargs):
+        if ConnectionManager().get_connection("OpenAI") is None:
+            raise Exception("OpenAI connection not found. Please initialize the connection.")
+        return func(*args, **kwargs)
+    return wrapper
 
 def list_models():
-    embeddings_models =  ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].keys()
+    embeddings_models =  ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].keys()
     return {
         "embeddings_models": list(embeddings_models)
     }
 
-def get_client():
-    return ConnectionManager().get_connection("OpenAI").get_client()
 
 
-def create_embeddings(model: str, document: Document | TextChunk | str, model_settings: dict = None):
+def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_settings: dict = None):
     output_metadata = {
         'model': model,
         'model_settings': model_settings,
         'timestamp': datetime.now()
     }
     
-    embedding_model_setting = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].get(model).ModelInputSchema
+    if model not in ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"]:
+        raise ValueError(f"Model {model} not found in OpenAI settings.")
+    embedding_model_setting = ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model).ModelInputSchema
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. Please check the model name.")
 
@@ -127,11 +120,11 @@ def create_embeddings(model: str, document: Document | TextChunk | str, model_se
     except Exception:
         raise ValueError(f"Error. please check if the settings are correct. use get_model_settings(model) to check the correct settings.")
 
-    if ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_model"]["models_map"].get(model)().config['variant'] == 'clip':
+    if ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].get(model)().config['variant'] == 'clip':
         # cuz our function takes the document object directly
         embeddings =  CLIPmodel(model).create_embeddings_clip(body_fields, model_settings)
 
-    content = document.page_content if isinstance(document, Document) else document.chunk if isinstance(document, TextChunk) else None
+    content = document.image if isinstance(document, Document) and document.image else document.content if isinstance(document, Document) else document.chunk if isinstance(document, TextChunk) else None
 
     return Vector(
         document_id=document.id,

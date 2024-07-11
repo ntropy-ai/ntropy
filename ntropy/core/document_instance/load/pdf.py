@@ -1,6 +1,7 @@
 import pymupdf
 from ntropy.core.utils.base_format import Document
 from typing import List
+import os
 
 
 class PDFLoader:
@@ -19,7 +20,7 @@ class PDFLoader:
             documents.append(
                 Document(
                     page_number=page_number,
-                    page_content=text_content,
+                    content=text_content,
                     image=None,
                     metadata={"type": "text"}
                 )
@@ -38,14 +39,15 @@ class PDFLoader:
 
                 if pixmap.n - pixmap.alpha > 3:
                     pixmap = pymupdf.Pixmap(pymupdf.csRGB, pixmap)
-
+                if not os.path.exists(self.img_path):
+                    os.makedirs(self.img_path)
                 image_path = f"{self.img_path}/image_{page_number}_{image_index}.png"
                 pixmap.save(image_path)
 
                 documents.append(
                     Document(
                         page_number=page_number,
-                        page_content=None,
+                        content=None,
                         image=image_path,
                         metadata={"type": "image"}
                     )

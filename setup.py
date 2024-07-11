@@ -23,6 +23,9 @@ setup(
         ],
         'document-instance-pdf': [
             'pymupdf'
+        ],
+        'rag-vectorstore-pinecone': [
+            'pinecone-client'
         ]
     },
     # Additional metadata

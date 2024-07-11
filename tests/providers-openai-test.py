@@ -1,6 +1,8 @@
 from unittest.mock import patch, MagicMock
-from ntropy.core.providers.openai import OpenAIConnection, list_models, get_client, create_embeddings
+from ntropy.core.embeddings.openai import get_client, OpenAIEmbeddings
+from ntropy.core.providers import OpenAIConnection
 from ntropy.core.utils.base_format import TextChunk, Document
+from ntropy.core.embeddings import list_models
 import pytest
 import requests
 import os
@@ -28,8 +30,9 @@ def test_openai_connection_init_connection(mock_openai_client):
 # Test list_models function
 def test_list_models(mock_models_base_settings):
     models = list_models()
-    assert "embeddings_models" in models
-    assert "openai.clip-vit-base-patch32" in models["embeddings_models"]
+    assert "OpenAI" in models
+    assert "embeddings_models" in models['OpenAI']
+    assert "openai.clip-vit-base-patch32" in models['OpenAI']["embeddings_models"]
 
 # Test get_client function
 @patch('ntropy.core.utils.connections_manager.ConnectionManager.get_connection')
@@ -41,14 +44,14 @@ def test_get_client(mock_get_connection):
     mock_conn.get_client.assert_called_once()
 
 # Test create_embeddings function
-@patch('ntropy.core.providers.openai.get_client')
+@patch('ntropy.core.embeddings.openai.get_client')
 def test_create_embeddings(mock_get_client, mock_models_base_settings):
     mock_client = MagicMock()
     mock_get_client.return_value = mock_client
 
     chunk = TextChunk(id="doc1", chunk="This is a test document.", chunk_number=1, document_id="doc1")
     model_settings = {"device": "cpu"}
-    vector = create_embeddings("openai.clip-vit-base-patch32", chunk, model_settings)
+    vector = OpenAIEmbeddings("openai.clip-vit-base-patch32", chunk, model_settings)
 
     assert vector.document_id == "doc1"
     assert isinstance(vector.vector, list)
@@ -60,7 +63,7 @@ def test_create_embeddings(mock_get_client, mock_models_base_settings):
 
 
 # Test create_embeddings function for image
-@patch('ntropy.core.providers.openai.get_client')
+@patch('ntropy.core.embeddings.openai.get_client')
 def test_create_embeddings_image(mock_get_client, mock_models_base_settings):
     mock_client = MagicMock()
     mock_get_client.return_value = mock_client
@@ -70,9 +73,9 @@ def test_create_embeddings_image(mock_get_client, mock_models_base_settings):
     image_path = "/tmp/sample_image.jpg"
     with open(image_path, "wb") as f:
         f.write(response.content)
-    document = Document(id="doc1", page_content=None, image=image_path, page_number=1)
+    document = Document(id="doc1", content=None, image=image_path, page_number=1)
     model_settings = {"device": "cpu"}
-    vector = create_embeddings("openai.clip-vit-base-patch32", document, model_settings)
+    vector = OpenAIEmbeddings("openai.clip-vit-base-patch32", document, model_settings)
     os.remove(image_path)
     assert vector.document_id == "doc1"
     assert isinstance(vector.vector, list)
