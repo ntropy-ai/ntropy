@@ -5,6 +5,11 @@ from pinecone import ServerlessSpec
 from ntropy.core.utils.base_format import Vector, Document
 from typing import List
 from ntropy.core.utils.settings import ModelsBaseSettings
+import tempfile
+from PIL import Image
+import requests
+from ntropy.core import utils
+
 
 def get_client():
     return ConnectionManager().get_connection("Pinecone").get_client()
@@ -25,6 +30,8 @@ class Pinecone:
         self.embedding_func = None
         self.embedding_model_settings = None
         self.embedding_model_name = None
+        self.embedding_model_settings_top_k = None
+        self.embedding_model_settings_include_values = None
         if not index_name:
             if not self.other_settings:
                 raise Exception("No index name specified for Pinecone, please provide an index name !")
@@ -85,6 +92,10 @@ class Pinecone:
 
     def fetch_vectors(self, ids: List[str]):
         return self.get_index(self.index_name).fetch(ids=ids)
+    
+    def set_retriever_settings(self, top_k: int, include_values: bool):
+        self.embedding_model_settings_top_k = top_k
+        self.embedding_model_settings_include_values = include_values
 
     # this function returns a vector, it will be modified to return the results directly
     def query(self, 
@@ -128,7 +139,10 @@ class Pinecone:
             if query_text:
                 document = Document(content=query_text, page_number=-1, data_type="text")
             elif query_image:
-                document = Document(image=query_image, page_number=-1, data_type="image")
+                if query_image.startswith('http'):
+                    document = utils.save_img_to_temp_file(query_image, return_doc=True)
+                else:
+                    document = Document(image=query_image, page_number=-1, data_type="image")
             else:
                 raise Exception("query_text or query_image is required !")
             query_vector = query_vector_func(model, document, model_settings)
@@ -136,10 +150,11 @@ class Pinecone:
         if query_vector.size != query_dimension:
             warnings.warn(f"query_vector shape does not match the vector store dimension (which is {query_dimension}). use model_settings to set the correct dimension !")
 
+
         results =  self.get_index(self.index_name).query(
             vector=query_vector.vector,
-            top_k=top_k,
-            include_values=include_values,
+            top_k=self.embedding_model_settings_top_k if self.embedding_model_settings_top_k else top_k,
+            include_values=self.embedding_model_settings_include_values if self.embedding_model_settings_include_values else include_values,
             namespace=namespace
         )
 
@@ -154,15 +169,15 @@ class Pinecone:
             v = original_vectors['vectors'][vector]
             results_vectors.append(
                     Vector(
-                    id=v['id'], 
-                    score=results_ids[v['id']],
-                    document_id=v['metadata']['document_id'],
-                    vector=v['values'], 
-                    content=v['metadata']['content'],
-                    data_type=v['metadata']['data_type'],
-                    size=v['metadata']['size'],
-                    metadata={k: v for k, v in v['metadata'].items() if k not in ['content', 'document_id', 'size', 'data_type']}
-                )
+                        id=v['id'], 
+                        score=results_ids[v['id']],
+                        document_id=v['metadata']['document_id'],
+                        vector=v['values'], 
+                        content=v['metadata']['content'],
+                        data_type=v['metadata']['data_type'],
+                        size=v['metadata']['size'],
+                        metadata={k: v for k, v in v['metadata'].items() if k not in ['content', 'document_id', 'size', 'data_type']}
+                    )
             )
         return results_vectors
 

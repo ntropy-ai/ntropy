@@ -1,6 +1,6 @@
 
 from ntropy.core.utils.auth_format import *
-
+from ntropy.core.utils.connections_manager import ConnectionManager
 
 
 class ModelsBaseSettings():
@@ -23,7 +23,7 @@ class ModelsBaseSettings():
                         "amazon.titan-embed-image-v1": AWSEmbeddingModels.AmazonTitanMultimodalEmbeddingsG1Input,
                         "amazon.titan-embed-text-v2:0": AWSEmbeddingModels.AmazonTitanEmbedTextV2Input
                     }
-                }
+                },
             }
         except ImportError:
             pass
