@@ -76,6 +76,8 @@ class BaseAuth():
             if not os.path.exists(self.db_base_path):
                 os.makedirs(self.db_base_path, exist_ok=True)
         print("Creating database...")
+        if os.path.exists(self.db_location):
+            os.remove(self.db_location)
         self.db = sqlite3.connect(self.db_location)
         
         # Generate RSA keys
@@ -235,7 +237,7 @@ class BaseAuth():
             ])
 
         print(tabulate(decrypted_providers, headers=["Service Name", "Name", "API Key", "Secret Key", "Access Key", "Other Setting"]))
-        return json.dumps(decrypted_providers)
+        return decrypted_providers
 
     def delete_provider(self, provider: BaseModel):
         """
