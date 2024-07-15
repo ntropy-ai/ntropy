@@ -1,6 +1,5 @@
 
 from ntropy.core.utils.auth_format import *
-from ntropy.core.utils.connections_manager import ConnectionManager
 
 
 class ModelsBaseSettings():
@@ -16,7 +15,7 @@ class ModelsBaseSettings():
                     "embeddings": aws.AWSEmbeddings,
                 },
                 "embeddings_models": {
-                    # input format map
+                    # input format map because each models has different input format
                     "models_map": {
                         "amazon.titan-embed-image-v1": aws.AWSEmbeddingModels.AmazonTitanMultimodalEmbeddingsG1Input,
                         "amazon.titan-embed-text-v2:0": aws.AWSEmbeddingModels.AmazonTitanEmbedTextV2Input
@@ -52,7 +51,7 @@ class ModelsBaseSettings():
 
 
         try: 
-            from ntropy.core.providers import PineconeConnection
+            from ntropy.core.vector_store.pinecone import PineconeConnection
             self.providers_list_map["Pinecone"] = {
                 "auth": PineconeAuth,
                 "connect": PineconeConnection,
@@ -60,9 +59,7 @@ class ModelsBaseSettings():
         except ImportError:
             pass
 
-
         # models providers
-
         try:
             from ntropy.core.models import ollama
             self.providers_list_map['Ollama'] = {
@@ -71,7 +68,7 @@ class ModelsBaseSettings():
                     'chat': ollama.OllamaModel.chat
                 },
                 'models': {
-                    model: ollama.OllamaModelsInput for model in ollama.list_models()
+                    model: model for model in ollama.list_models()
                 }
             }
         except ImportError:

@@ -22,6 +22,27 @@ def require_login(func):
         return func(*args, **kwargs)
     return wrapper
 
+class PineconeConnection:
+    def __init__(self, api_key: str, other_setting: dict, **kwargs):
+        self.api_key = api_key
+        self.client = None
+        self.other_setting = other_setting
+
+    def init_connection(self):
+        try:
+            self.client = Pinecone(api_key=self.api_key)
+            print("Pinecone connection initialized successfully.")
+        except Exception as e:
+            raise Exception(f"Error initializing Pinecone connection: {e}")
+        
+    def get_client(self):
+        if self.client is None:
+            self.init_connection()
+        return self.client
+    
+    def get_other_setting(self):
+        return self.other_setting
+
 
 @require_login
 class Pinecone:

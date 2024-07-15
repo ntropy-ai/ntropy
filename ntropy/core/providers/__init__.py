@@ -1,11 +1,8 @@
-
-import boto3
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError
-import openai
 from pinecone import Pinecone
 from ntropy.core.utils.settings import ModelsBaseSettings
 
 def list_models(by_provider: str = None, models_only: bool = False, embeddings_only: bool = False):
+    # will return a dir with all the providers and model, you can filter with a provider (eg "openai") or with embeddings_only=True or models_only=True
     out = {}
     if embeddings_only:
         for provider in ModelsBaseSettings().providers_list_map:
@@ -46,6 +43,7 @@ def list_models(by_provider: str = None, models_only: bool = False, embeddings_o
     return out
 
 def get_model_settings(model: str):
+    # get the settings of a model 
     for provider in ModelsBaseSettings().providers_list_map:
         if 'embeddings_models' in ModelsBaseSettings().providers_list_map[provider] and model in ModelsBaseSettings().providers_list_map[provider]["embeddings_models"]["models_map"]:
             return ModelsBaseSettings().providers_list_map[provider]["embeddings_models"]["models_map"][model]().model_settings
@@ -54,26 +52,3 @@ def get_model_settings(model: str):
 
 
 
-# -----------
-
-
-class PineconeConnection:
-    def __init__(self, api_key: str, other_setting: dict, **kwargs):
-        self.api_key = api_key
-        self.client = None
-        self.other_setting = other_setting
-
-    def init_connection(self):
-        try:
-            self.client = Pinecone(api_key=self.api_key)
-            print("Pinecone connection initialized successfully.")
-        except Exception as e:
-            raise Exception(f"Error initializing Pinecone connection: {e}")
-        
-    def get_client(self):
-        if self.client is None:
-            self.init_connection()
-        return self.client
-    
-    def get_other_setting(self):
-        return self.other_setting

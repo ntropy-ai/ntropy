@@ -6,7 +6,7 @@ import os
 
 
 
-temps_images = []
+temps_images = [] # we save the images in a list to be able to clear the cache
 # save http img 
 # by default return file path, if return_doc is True return file object
 def save_img_to_temp_file(image_url: str, return_doc: bool = False):
