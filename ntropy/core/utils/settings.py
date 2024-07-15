@@ -56,3 +56,19 @@ class ModelsBaseSettings():
             }
         except ImportError:
             pass
+
+
+        # models providers
+
+        try:
+            from ntropy.core.models import ollama
+            self.providers_list_map['Ollama'] = {
+                'functions': {
+                    'generate': ollama.OllamaModel.generate
+                },
+                'models': {
+                    model: ollama.OllamaModelsInput for model in ollama.list_models()
+                }
+            }
+        except ImportError:
+            pass

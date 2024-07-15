@@ -26,3 +26,4 @@ def clear_cache():
     for file in temps_images:
         os.remove(file)
     print('cache cleared !')
+

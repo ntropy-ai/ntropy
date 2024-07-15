@@ -91,13 +91,6 @@ def require_login(func):
         return func(*args, **kwargs)
     return wrapper
 
-def list_models():
-    embeddings_models =  ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"].keys()
-    return {
-        "embeddings_models": list(embeddings_models)
-    }
-
-
 
 def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_settings: dict = None):
     output_metadata = {

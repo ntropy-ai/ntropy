@@ -1,5 +1,6 @@
 
 from ntropy.core.utils.base_format import Document
+from ntropy.core.utils.chat import ChatMessage
 from typing import List
 import os
 from PIL import Image
@@ -28,6 +29,7 @@ class RagPrompt():
             else:
                 self.doc_list.append(doc.content)
         if self.images_list:
+            #self.prompt = ChatMessage(role='system', content=f"Using this data: {' '.join(self.doc_list)} and the images. Respond to this prompt: {query}", images=self.images_list)
             self.prompt = f"Using this data: {' '.join(self.doc_list)} and the images. Respond to this prompt: {query}"
         else:
             self.prompt = f"Using this data: {' '.join(self.doc_list)}. Respond to this prompt: {query}"
