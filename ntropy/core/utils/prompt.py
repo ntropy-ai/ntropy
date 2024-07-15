@@ -1,6 +1,6 @@
 
-from ntropy.core.utils.base_format import Document
-from ntropy.core.utils.chat import ChatMessage
+from ntropy.core.utils.base_format import Vector
+from ntropy.core.utils import save_img_to_temp_file
 from typing import List
 import os
 from PIL import Image
@@ -8,23 +8,18 @@ import tempfile
 import requests
 
 class RagPrompt():
-    def __init__(self, query: str, context: List[Document]): # image is Document format
-        self.images_list = []
+    def __init__(self, query: str, context: List[Vector]):
         self.doc_list = []
+        self.images_list = []
         for doc in context:
             if doc.data_type == 'image':
-                self.images_list.append(doc.content)
-                if doc.content.startswith('http'):
-                    with tempfile.NamedTemporaryFile(suffix=".jpg") as temp_file:
-                        img = Image.open(requests.get(doc.content, stream=True).raw)
-                        img.save(temp_file.name)
-                        temp_file.flush()
-                        self.images_list.append(temp_file.name)
+                if not doc.content.startswith('http'):
+                    self.images_list.append(save_img_to_temp_file(doc.content, return_doc=False))
                 else:
-                    if os.path.exists(doc.content):
-                        self.images_list.append(doc.content)
-                    else:
-                        raise ValueError(f"Image {doc.content} not found")
+                    #if os.path.exists(doc.content):
+                    self.images_list.append(doc.content)
+                    #else:
+                    #    raise ValueError(f"Image {doc.content} not found")
                     
             else:
                 self.doc_list.append(doc.content)

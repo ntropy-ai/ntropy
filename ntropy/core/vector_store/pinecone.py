@@ -11,6 +11,7 @@ import requests
 from ntropy.core import utils
 
 
+
 def get_client():
     return ConnectionManager().get_connection("Pinecone").get_client()
 
@@ -66,13 +67,13 @@ class Pinecone:
 
         if vectors[0].document_id or vectors[0].size:
             warnings.warn("Only the fields 'id' and 'values' are supported by Pinecone. The remaining fields will be stored in 'metadata'.")
-
-        self.get_index(self.index_name).upsert(
-            vectors=[
-                {"id": v.id, "values": v.vector, 'metadata': {k: v for k, v in {**v.metadata, 'size': v.size, 'content': v.content, "document_id": v.document_id, "data_type": v.data_type}.items() if v is not None}} for v in vectors
-            ],
-            namespace=namespace
-        )
+        for v in vectors:
+            self.get_index(self.index_name).upsert(
+                vectors=[
+                    {"id": v.id, "values": v.vector, 'metadata': {k: v for k, v in {**v.metadata, 'size': v.size, 'content': v.content, "document_id": v.document_id, "data_type": v.data_type}.items() if v is not None}}
+                ],
+                namespace=namespace
+            )
 
 
     # set embeddings model default

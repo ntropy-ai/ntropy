@@ -1,7 +1,3 @@
-"""
-providers for models, embeddings
-"""
-
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.fields import PydanticUndefined
 from typing import Union
@@ -9,10 +5,74 @@ import base64
 import json
 from datetime import datetime
 import warnings
-
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from ntropy.core.utils.base_format import Vector, Document, TextChunk
 from ntropy.core.utils.settings import ModelsBaseSettings
 from ntropy.core.utils.connections_manager import ConnectionManager
+import boto3
+
+
+
+# connection
+class AWSConnection:
+    def __init__(self, access_key: str, secret_access_key: str, other_setting: dict, **kwargs):
+        self.other_setting = other_setting
+        self.aws_access_key_id = access_key
+        self.aws_secret_access_key = secret_access_key
+        # other settings
+        self.region_name = other_setting.get("region_name", "us-east-1") # default to us-east-1 if not provided
+        self.session = None
+
+    def init_connection(self):
+        try:
+            self.session = boto3.Session(
+                aws_access_key_id=self.aws_access_key_id,
+                aws_secret_access_key=self.aws_secret_access_key,
+                region_name=self.region_name
+            )
+            print("AWS connection initialized successfully.")
+            
+        except (NoCredentialsError, PartialCredentialsError) as e:
+            raise Exception(f"Error initializing AWS connection: {e}")
+
+    def get_client(self):
+        if self.session is None:
+            self.init_connection()
+        return self.session
+    
+    def get_other_setting(self):
+        return self.other_setting
+
+# utils
+class utils:
+    def get_client():
+        return ConnectionManager().get_connection("AWS").get_client()
+
+    def get_other_settings():
+        return ConnectionManager().get_connection("AWS").get_other_setting()
+
+    def require_login(func):
+        def wrapper(*args, **kwargs):
+            if ConnectionManager().get_connection("AWS") is None:
+                raise Exception("AWS connection not found. Please initialize the connection.")
+            return func(*args, **kwargs)
+        return wrapper
+
+    @require_login
+    def upload_to_s3(file_name: str, bucket: str = None, object_name: str = None):
+        s3_client = utils.get_client().client("s3")
+        bucket = ModelsBaseSettings().providers_list_map["AWS"]["settings"]["default_s3_bucket"]
+        try:
+            s3_client.upload_file(file_name, bucket, object_name or file_name)
+            file_url = f"https://{bucket}.s3.amazonaws.com/{object_name or file_name}"
+        except FileNotFoundError:
+            print("The file was not found")
+            return None
+        except NoCredentialsError:
+            print("Credentials not available")
+            return None
+        return file_url
+
 
 """
 pre defined models schema for aws requests
@@ -54,23 +114,7 @@ class AWSEmbeddingModels():
 
 
 
-    
-def get_client():
-    return ConnectionManager().get_connection("AWS").get_client()
-
-def get_other_settings():
-    return ConnectionManager().get_connection("AWS").get_other_setting()
-
-def require_login(func):
-    def wrapper(*args, **kwargs):
-        if ConnectionManager().get_connection("AWS") is None:
-            raise Exception("AWS connection not found. Please initialize the connection.")
-        return func(*args, **kwargs)
-    return wrapper
-
-
-
-@require_login
+@utils.require_login
 def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settings: dict) -> Vector:
     accept = "application/json"
     content_type = "application/json"
@@ -127,7 +171,7 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
         raise ValueError(f"Error. please check if the settings are correct. use model_settings(model) to check the correct settings.")
     if "model_name" in body_fields:
         del body_fields["model_name"]
-    client = get_client()
+    client = utils.get_client().client("bedrock-runtime")
 
     response = client.invoke_model(
         body=json.dumps(body_fields), modelId=model, accept=accept, contentType=content_type
@@ -143,3 +187,6 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
         content=text_input if text_input else image_input,
         metadata=output_metadata
     )
+
+
+

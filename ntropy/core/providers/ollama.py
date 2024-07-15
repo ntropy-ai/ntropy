@@ -1,5 +1,3 @@
-
-
 import ollama
 from pydantic import BaseModel
 from ntropy.core import utils
@@ -7,7 +5,7 @@ from ntropy.core.utils.base_format import Document
 from typing import List
 import warnings
 from ntropy.core.utils.chat import ChatManager, ChatMessage
-
+from ntropy.core.utils import save_img_to_temp_file
 
 class OllamaModelsInput():
     model_name: str
@@ -21,6 +19,18 @@ class OllamaModelsInput():
 def list_models():
     models = ollama.list()
     return [model['name'] for model in models['models'] if 'clip' in model['details']['families']]
+
+class utils:
+    def ensure_local_image(image: str):
+        """
+        Ensure the image is local and not a URL because ollama does not support URLs
+        """
+        if image.startswith('http'):
+            return save_img_to_temp_file(image, return_doc=False)
+        else:
+            return image
+        
+        
 
 class OllamaModel():
     def __init__(self, model_name: str, system_prompt: str = None, retriever: object = None, agent_prompt: BaseModel = None):
@@ -51,20 +61,21 @@ class OllamaModel():
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want
             if prompt.images_list:
-                response = ollama.generate(model=self.model_name, prompt=final_prompt, images=prompt.images_list)
+                images_list = [utils.ensure_local_image(image) for image in prompt.images_list]
+                response = ollama.generate(model=self.model_name, prompt=final_prompt, images=images_list)
             elif image:
-                image_path = utils.save_img_to_temp_file(image, return_doc=False)
+                image_path = utils.ensure_local_image(image)
                 response = ollama.generate(model=self.model_name, prompt=final_prompt, images=[image_path])
             else:
                 response = ollama.generate(model=self.model_name, prompt=final_prompt)
 
-            self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+            self.history.add_message(role='user', content=final_prompt, images=[utils.ensure_local_image(image) for image in prompt.images_list])
             self.history.add_message(role='assistant', content=response['response'])
             return response['response']
         
         else:
             if image:
-                image_path = utils.save_img_to_temp_file(image, return_doc=False)
+                image_path = utils.ensure_local_image(image)
                 self.history.add_message(role='user', content=query, images=[image_path])
                 response = ollama.generate(model=self.model_name, prompt=query, images=[image_path])
             else:
@@ -90,13 +101,14 @@ class OllamaModel():
             
             # add the prompt and the context to the chat history
             if prompt.images_list:
-                self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+                images_list = [utils.ensure_local_image(image) for image in prompt.images_list]
+                self.history.add_message(role='user', content=final_prompt, images=images_list)
             else:
                 self.history.add_message(role='user', content=final_prompt)
             
             response = ollama.chat(model=self.model_name, messages=self.history.get_history())
         else:
-            images = [utils.save_img_to_temp_file(image, return_doc=False) for image in image]
+            images = [utils.ensure_local_image(image) for image in image]
             self.history.add_message(role='user', content=query, images=images)
             response = ollama.chat(model=self.model_name, messages=self.history.get_history())
 
@@ -120,7 +132,7 @@ class OllamaModel():
             
             # add the prompt and the context to the chat history
             if prompt.images_list:
-                self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+                self.history.add_message(role='user', content=final_prompt, images=[utils.ensure_local_image(image) for image in prompt.images_list])
             else:
                 self.history.add_message(role='user', content=final_prompt)
             
@@ -129,8 +141,11 @@ class OllamaModel():
                 final_res += chunk['message']['content']
                 yield chunk['message']['content'] 
         else:
-            images = [utils.save_img_to_temp_file(image, return_doc=False) for image in image]
-            self.history.add_message(role='user', content=query, images=images)
+            if image:
+                images = [utils.ensure_local_image(image) for image in image]
+                self.history.add_message(role='user', content=query, images=images)
+            else:
+                self.history.add_message(role='user', content=query)
             stream = ollama.chat(model=self.model_name, messages=self.history.get_history(), stream=True)
             for chunk in stream:
                 final_res += chunk['message']['content']
@@ -156,7 +171,7 @@ class OllamaModel():
             if prompt.images_list:
                 response = ollama.generate(model=self.model_name, prompt=final_prompt, images=prompt.images_list)
             elif image:
-                image_path = utils.save_img_to_temp_file(image, return_doc=False)
+                image_path = utils.ensure_local_image(image)
                 stream = ollama.generate(model=self.model_name, prompt=final_prompt, images=[image_path], stream=True)
                 for chunk in stream:
                     final_res += chunk['response']
@@ -167,12 +182,12 @@ class OllamaModel():
                     final_res += chunk['response']
                     yield chunk['response']
 
-            self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+            self.history.add_message(role='user', content=final_prompt, images=[utils.ensure_local_image(image) for image in prompt.images_list])
             self.history.add_message(role='assistant', content=final_res)
         
         else:
             if image:
-                image_path = utils.save_img_to_temp_file(image, return_doc=False)
+                image_path = utils.ensure_local_image(image)
                 self.history.add_message(role='user', content=query, images=[image_path])
                 stream = ollama.generate(model=self.model_name, prompt=query, images=[image_path], stream=True)
                 for chunk in stream:
