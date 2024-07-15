@@ -28,6 +28,8 @@ class RagPrompt():
                     
             else:
                 self.doc_list.append(doc.content)
+
+        self.context_doc = context
         if self.images_list:
             #self.prompt = ChatMessage(role='system', content=f"Using this data: {' '.join(self.doc_list)} and the images. Respond to this prompt: {query}", images=self.images_list)
             self.prompt = f"Using this data: {' '.join(self.doc_list)} and the images. Respond to this prompt: {query}"

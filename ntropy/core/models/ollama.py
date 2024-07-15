@@ -36,19 +36,20 @@ class OllamaModel():
 
 
     # completion
-    def generate(self, query: str = None, image: str = None, top_k: int = None):
+    def generate(self, query: str = None, image: str = None):
         if self.system_prompt:
             warnings.warn("system prompt is only supported for chat methods")
         if self.retriever:
             context = []
             if query:
-                context.extend(self.retriever(query_text=query, top_k=top_k))
+                context.extend(self.retriever(query_text=query))
             elif query and image:
-                context.extend(self.retriever(query_image=image, top_k=top_k))
+                context.extend(self.retriever(query_image=image))
             if not self.agent_prompt:
                 warnings.warn("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
+            # print('used docs: ', prompt.context_doc) access source if you want
             if prompt.images_list:
                 response = ollama.generate(model=self.model_name, prompt=final_prompt, images=prompt.images_list)
             elif image:
@@ -74,17 +75,18 @@ class OllamaModel():
         
     
     # chat
-    def chat(self, query: str, image: str = None, top_k: int = None):
+    def chat(self, query: str, image: str = None):
         if self.retriever:
             context = []
             if query:
-                context.extend(self.retriever(query_text=query, top_k=top_k))
+                context.extend(self.retriever(query_text=query))
             elif query and image:
-                context.extend(self.retriever(query_image=image, top_k=top_k))
+                context.extend(self.retriever(query_image=image))
             if not self.agent_prompt:
                 warnings.warn("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
+            # print('used docs: ', prompt.context_doc) access source if you want
             
             # add the prompt and the context to the chat history
             if prompt.images_list:
@@ -100,3 +102,86 @@ class OllamaModel():
 
         self.history.add_message(role='assistant', content=response['message']['content'])
         return response['message']['content']
+
+    # streaming, i prefer to separate stream and non stream
+    def schat(self, query: str, image: str = None):
+        final_res = ''
+        if self.retriever:
+            context = []
+            if query:
+                context.extend(self.retriever(query_text=query))
+            elif query and image:
+                context.extend(self.retriever(query_image=image))
+            if not self.agent_prompt:
+                warnings.warn("agent_prompt is not defined.")
+            prompt = self.agent_prompt(query=query, context=context)
+            final_prompt = prompt.prompt
+            # print('used docs: ', prompt.context_doc) access source if you want
+            
+            # add the prompt and the context to the chat history
+            if prompt.images_list:
+                self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+            else:
+                self.history.add_message(role='user', content=final_prompt)
+            
+            stream = ollama.chat(model=self.model_name, messages=self.history.get_history(), stream=True)
+            for chunk in stream:
+                final_res += chunk['message']['content']
+                yield chunk['message']['content'] 
+        else:
+            images = [utils.save_img_to_temp_file(image, return_doc=False) for image in image]
+            self.history.add_message(role='user', content=query, images=images)
+            stream = ollama.chat(model=self.model_name, messages=self.history.get_history(), stream=True)
+            for chunk in stream:
+                final_res += chunk['message']['content']
+                yield chunk['message']['content'] 
+
+        self.history.add_message(role='assistant', content=final_res)
+        
+    def sgenerate(self, query: str, image: str = None):
+        final_res = ''
+        if self.system_prompt:
+            warnings.warn("system prompt is only supported for chat methods")
+        if self.retriever:
+            context = []
+            if query:
+                context.extend(self.retriever(query_text=query))
+            elif query and image:
+                context.extend(self.retriever(query_image=image))
+            if not self.agent_prompt:
+                warnings.warn("agent_prompt is not defined.")
+            prompt = self.agent_prompt(query=query, context=context)
+            final_prompt = prompt.prompt
+            # print('used docs: ', prompt.context_doc) access source if you want
+            if prompt.images_list:
+                response = ollama.generate(model=self.model_name, prompt=final_prompt, images=prompt.images_list)
+            elif image:
+                image_path = utils.save_img_to_temp_file(image, return_doc=False)
+                stream = ollama.generate(model=self.model_name, prompt=final_prompt, images=[image_path], stream=True)
+                for chunk in stream:
+                    final_res += chunk['response']
+                    yield chunk['response']
+            else:
+                stream = ollama.generate(model=self.model_name, prompt=final_prompt, stream=True)
+                for chunk in stream:
+                    final_res += chunk['response']
+                    yield chunk['response']
+
+            self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+            self.history.add_message(role='assistant', content=final_res)
+        
+        else:
+            if image:
+                image_path = utils.save_img_to_temp_file(image, return_doc=False)
+                self.history.add_message(role='user', content=query, images=[image_path])
+                stream = ollama.generate(model=self.model_name, prompt=query, images=[image_path], stream=True)
+                for chunk in stream:
+                    final_res += chunk['response']
+                    yield chunk['response']
+            else:
+                self.history.add_message(role='user', content=query)
+                stream = ollama.generate(model=self.model_name, prompt=query, stream=True)
+                for chunk in stream:
+                    final_res += chunk['response']
+                    yield chunk['response']
+            self.history.add_message(role='assistant', content=final_res)
