@@ -26,6 +26,9 @@ setup(
         ],
         'rag-vectorstore-pinecone': [
             'pinecone-client'
+        ],
+        'providers-ollama': [
+            'ollama'
         ]
     },
     # Additional metadata

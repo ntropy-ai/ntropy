@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Union, Optional
+from typing import Optional
 from uuid import uuid4
 
 # AWS: https://aws.amazon.com/

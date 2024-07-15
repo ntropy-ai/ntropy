@@ -8,20 +8,32 @@ from cryptography.hazmat.primitives import serialization, hashes
 from ntropy.core.utils.settings import ModelsBaseSettings
 from ntropy.core.utils.connections_manager import ConnectionManager
 
-
-        
-
-
 class BaseAuth():
+    """
+    BaseAuth class handles the authentication mechanism using RSA encryption.
+    It manages the creation, connection, and operations on a SQLite database 
+    that stores provider credentials in an encrypted format.
+    """
     def __init__(self):
-        self.db_base_path = os.path.join(os.path.dirname(__file__), "..", "utils", "db") # this is only used once
-        self.db_location = os.path.join(self.db_base_path, "Login.db")
+        """
+        Initializes the BaseAuth class with default database paths and keys.
+        """
+        self.db_base_path = os.path.join(os.path.dirname(__file__), "..", "utils", "db") # Base path for the database
+        self.db_location = os.path.join(self.db_base_path, "Login.db") # Full path to the database file
         self.db = None
         self.private_key = None
         self.public_key = None
 
+    def encrypt(self, data: str) -> bytes:
+        """
+        Encrypts the given data using the public key.
 
-    def encrypt(self, data: str):
+        Args:
+            data (str): The data to be encrypted.
+
+        Returns:
+            bytes: The encrypted data.
+        """
         return self.public_key.encrypt(
             data.encode('utf-8'),
             padding.OAEP(
@@ -31,7 +43,16 @@ class BaseAuth():
             )
         )
     
-    def decrypt(self, data: bytes):
+    def decrypt(self, data: bytes) -> str:
+        """
+        Decrypts the given data using the private key.
+
+        Args:
+            data (bytes): The data to be decrypted.
+
+        Returns:
+            str: The decrypted data.
+        """
         return self.private_key.decrypt(
             data,
             padding.OAEP(
@@ -42,6 +63,10 @@ class BaseAuth():
         ).decode('utf-8')
     
     def create_db(self):
+        """
+        Creates a new SQLite database and generates RSA keys.
+        Prompts the user if the database already exists.
+        """
         if os.path.exists(self.db_location):
             response = input("Database already exists. Do you want to override it? (yes/no): ")
             if response.lower() != 'yes':
@@ -77,6 +102,7 @@ class BaseAuth():
         file.close()
         print("Private key saved to: ", os.path.join(self.db_base_path, "private_key.pem"))
 
+        # Create tables in the database
         self.db.execute("CREATE TABLE IF NOT EXISTS auth (public_key BLOB)")
         self.db.execute("CREATE TABLE IF NOT EXISTS providers (service_name TEXT, name TEXT, api_key TEXT, api_secret TEXT, access_key TEXT, other_setting JSON)")
         self.db.commit()
@@ -85,6 +111,14 @@ class BaseAuth():
         self.db.close()
 
     def connect(self, private_key: str = None, db_path: str = None, key_file: str = None):
+        """
+        Connects to the SQLite database and loads the private key.
+
+        Args:
+            private_key (str): The private key as a string.
+            db_path (str): The path to the database file.
+            key_file (str): The path to the private key file.
+        """
         if db_path is not None:
             self.db_location = db_path
         if not os.path.exists(self.db_location):
@@ -108,7 +142,7 @@ class BaseAuth():
         public_key_pem = cursor.fetchone()[0]
         self.public_key = serialization.load_pem_public_key(public_key_pem)
 
-        # automatically connect for all providers
+        # Automatically connect for all providers
         creds_list = self.get_creds()
         for cred in creds_list:
             provider_class = ModelsBaseSettings().providers_list_map.get(cred.get("service_name"))
@@ -119,9 +153,13 @@ class BaseAuth():
 
                 ConnectionManager().add_connection(cred.get("service_name"), conn)
 
-                
-
     def update_provider(self, provider: BaseModel, **kwargs):
+        """
+        Updates the provider information in the database.
+
+        Args:
+            provider (BaseModel): The provider model containing updated information.
+        """
         if self.db is None:
             raise Exception("Database not connected, connect first using Database().connect(password) or create a db using Database().create_db()")
         
@@ -142,6 +180,12 @@ class BaseAuth():
         
 
     def add_provider(self, provider: BaseModel, **kwargs):
+        """
+        Adds a new provider to the database.
+
+        Args:
+            provider (BaseModel): The provider model containing the information to be added.
+        """
         if self.db is None:
             raise Exception("Database not connected, connect first using Database().connect(password) or create a db using Database().create_db()")
        
@@ -151,12 +195,7 @@ class BaseAuth():
         if public_key_pem is None:
             raise Exception("Public key does not exist in the database. Please add the public key first.")
         
-        
-
-        if self.db is None:
-            raise Exception("Database not connected, connect first using Database().connect(password) or create a db using Database().create_db()")
-        
-        provider_data = provider.model_dump()  # Updated this line
+        provider_data = provider.model_dump()
 
         encrypted_api_key = self.encrypt(provider_data.get("api_key")) if provider_data.get("api_key") else None
         encrypted_access_key = self.encrypt(provider_data.get("access_key")) if provider_data.get("access_key") else None
@@ -167,8 +206,13 @@ class BaseAuth():
                         (provider_data.get("service_name"), provider_data.get("name"), encrypted_api_key, encrypted_secret_key, encrypted_access_key, other_setting_json))
         self.db.commit()
 
-
     def list_providers(self):
+        """
+        Lists all providers in the database with decrypted credentials.
+
+        Returns:
+            str: JSON string of the list of providers with decrypted credentials.
+        """
         if self.db is None:
             raise Exception("Database not connected, connect first using Database().connect(password) or create a db using Database().create_db()")
         cursor = self.db.cursor()
@@ -194,29 +238,41 @@ class BaseAuth():
         return json.dumps(decrypted_providers)
 
     def delete_provider(self, provider: BaseModel):
+        """
+        Deletes a provider from the database.
+
+        Args:
+            provider (BaseModel): The provider model containing the information to be deleted.
+        """
         if self.db is None:
             raise Exception("Database not connected, connect first using Database().connect(password) or create a db using Database().create_db()")
        
-        provider_name = provider.service_name  # Corrected this line
+        provider_name = provider.service_name
         cursor = self.db.cursor()
         if cursor is None:
             raise Exception("Failed to create a database cursor. check if the database is connected")
         
-
         cursor.execute("SELECT COUNT(*) FROM providers WHERE service_name = ?", (provider_name,))
         provider_count = cursor.fetchone()[0]
         
         if provider_count == 0:
             print(f"No provider found with the service_name: {provider_name}")
-
             return
         
         cursor.execute("DELETE FROM providers WHERE service_name = ?", (provider_name,))
         self.db.commit()
         print(f"Provider '{provider_name}' deleted successfully.")
 
-
     def get_creds(self, provider: BaseModel = None):
+        """
+        Retrieves the credentials for a specific provider or all providers.
+
+        Args:
+            provider (BaseModel, optional): The provider model to retrieve credentials for. Defaults to None.
+
+        Returns:
+            dict or list: Decrypted credentials for the specified provider or a list of all providers' credentials.
+        """
         if self.db is None:
             raise Exception("Database not connected, connect first using Database().connect(password) or create a db using Database().create_db()")
         cursor = self.db.cursor()
@@ -256,8 +312,3 @@ class BaseAuth():
                     "other_setting": other_setting
                 })
             return decrypted_providers
-    
-
-
-
-
