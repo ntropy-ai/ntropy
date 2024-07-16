@@ -10,9 +10,9 @@ class ChatManager:
 
     def add_message(self, role: Literal['user', 'assistant', 'system'], content: str, images: List[str] = None):
         if images:
-            message = ChatMessage(role=role, content=content, images=images, timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            message = ChatMessage(role=role, content=content, images=images, timestamp=datetime.now().isoformat())
         else:
-            message = ChatMessage(role=role, content=content, timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3])
+            message = ChatMessage(role=role, content=content, timestamp=datetime.now().isoformat())
         self.chat_history.messages.append(message)
 
     def get_history(self) -> list:

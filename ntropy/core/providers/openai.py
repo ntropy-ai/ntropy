@@ -241,7 +241,8 @@ def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_set
     output_metadata = {
         'model': model,
         'model_settings': model_settings,
-        'timestamp': datetime.now()
+        'timestamp': datetime.now().isoformat(),
+        
     }
     
     if model not in ModelsBaseSettings().providers_list_map["OpenAI"]["embeddings_models"]["models_map"]:
@@ -268,9 +269,10 @@ def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_set
         document_id=document.id,
         vector=embeddings,
         size=len(embeddings),
-        data_type="text" if isinstance(document, TextChunk) else "image",
+        data_type="image" if isinstance(document, Document) and document.image else "text" if isinstance(document, Document) else "text" if isinstance(document, TextChunk) else None,
         content=content,
-        metadata=output_metadata
+        document_metadata=document.metadata,
+        output_metadata=output_metadata
     )
 
 
@@ -300,7 +302,7 @@ class OpenaiModel():
 
     # note that OpenAI requires image url, and it has a specific chat format too, that's why we have a format_chat_to_openai_format function
     @require_login
-    def chat(self, query: str, image: str = None):
+    def chat(self, query: str, images: str = None):
         """
         Generate a chat response from the OpenAI model.
 
@@ -315,8 +317,8 @@ class OpenaiModel():
             context = []
             if query:
                 context.extend(self.retriever(query_text=query))
-            elif query and image:
-                context.extend(self.retriever(query_image=image))
+            elif query and images:
+                context.extend(self.retriever(query_image=images))
             if not self.agent_prompt:
                 warnings.warn("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
@@ -334,7 +336,9 @@ class OpenaiModel():
                 messages=utils.format_chat_to_openai_format(self.history.get_history())
             )
         else:
-            images = [utils.save_img_to_temp_file(image, return_doc=False) for image in image]
+            for image in images:
+                if not image.startswith('http'):
+                    raise ValueError(f"Image {image} is not a valid URL.")
             self.history.add_message(role='user', content=query, images=images)
             response = self.openai_client.chat.completions.create(
                 model=self.model_name,

@@ -61,7 +61,7 @@ class ModelsBaseSettings():
 
         # models providers
         try:
-            from ntropy.core.models import ollama
+            from ntropy.core.providers import ollama
             self.providers_list_map['Ollama'] = {
                 'functions': {
                     'generate': ollama.OllamaModel.generate,
@@ -71,5 +71,5 @@ class ModelsBaseSettings():
                     model: model for model in ollama.list_models()
                 }
             }
-        except ImportError:
+        except Exception: # it can be ImportError or Httpx Ollama connection error (when the Ollama service is not started)
             pass

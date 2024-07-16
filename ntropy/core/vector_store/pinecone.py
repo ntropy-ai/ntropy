@@ -1,15 +1,13 @@
-
 from ntropy.core.utils.connections_manager import ConnectionManager
 import warnings
 from pinecone import ServerlessSpec
 from ntropy.core.utils.base_format import Vector, Document
 from typing import List
 from ntropy.core.utils.settings import ModelsBaseSettings
-import tempfile
-from PIL import Image
-import requests
 from ntropy.core import utils
-
+from pinecone import Pinecone as PineconeLib
+import json
+import datetime
 
 
 def get_client():
@@ -30,7 +28,7 @@ class PineconeConnection:
 
     def init_connection(self):
         try:
-            self.client = Pinecone(api_key=self.api_key)
+            self.client = PineconeLib(api_key=self.api_key)
             print("Pinecone connection initialized successfully.")
         except Exception as e:
             raise Exception(f"Error initializing Pinecone connection: {e}")
@@ -56,7 +54,9 @@ class Pinecone:
         self.embedding_model_settings_include_values = None
         if not index_name:
             if not self.other_settings:
-                raise Exception("No index name specified for Pinecone, please provide an index name !")
+                warnings.warn("No index name specified for Pinecone, please provide an index name !")
+            #if not self.other_settings:
+            #    raise Exception("No index name specified for Pinecone, please provide an index name !")
             self.index_name = self.other_settings.get("index_name", None)
             warnings.warn(f"No index name specified, using default index {self.index_name}")
         else:
@@ -83,15 +83,35 @@ class Pinecone:
     def get_index(self, index_name: str):
         return self.client.Index(index_name)
     
-
+    def sanitize_metadata(self, metadata):
+        sanitized = {}
+        for k, v in metadata.items():
+            if isinstance(v, (str, int, float, bool)):
+                sanitized[k] = v
+            elif isinstance(v, list) and all(isinstance(i, str) for i in v):
+                sanitized[k] = v
+            else:
+                sanitized[k] = str(v)
+        return sanitized
+    
     def add_vectors(self, vectors: List[Vector], namespace: str = None):
-
         if vectors[0].document_id or vectors[0].size:
             warnings.warn("Only the fields 'id' and 'values' are supported by Pinecone. The remaining fields will be stored in 'metadata'.")
         for v in vectors:
             self.get_index(self.index_name).upsert(
                 vectors=[
-                    {"id": v.id, "values": v.vector, 'metadata': {k: v for k, v in {**v.metadata, 'size': v.size, 'content': v.content, "document_id": v.document_id, "data_type": v.data_type}.items() if v is not None}}
+                    {
+                        "id": v.id,
+                        "values": v.vector, 
+                        'metadata': self.sanitize_metadata({
+                            "document_id": v.document_id,
+                            'content': v.content,
+                            "size": v.size,
+                            'data_type': v.data_type,
+                            "document_metadata": v.document_metadata,
+                            "output_metadata": v.output_metadata
+                        })
+                    }
                 ],
                 namespace=namespace
             )
@@ -128,7 +148,7 @@ class Pinecone:
               query_image: str = None, 
               top_k: int = 5, 
               include_values: bool = False, 
-              namespace: str = None) -> list():
+              namespace: str = None) -> list:
            
         # the model name is required
         query_dimension = self.client.describe_index(self.index_name)["dimension"]
@@ -198,8 +218,8 @@ class Pinecone:
                         content=v['metadata']['content'],
                         data_type=v['metadata']['data_type'],
                         size=v['metadata']['size'],
-                        metadata={k: v for k, v in v['metadata'].items() if k not in ['content', 'document_id', 'size', 'data_type']}
+                        document_metadata = json.loads(v['metadata']['document_metadata'].replace("'", '"').replace("None", "null")),
+                        output_metadata = json.loads(v['metadata']['output_metadata'].replace("'", '"').replace("None", "null"))
                     )
             )
         return results_vectors
-

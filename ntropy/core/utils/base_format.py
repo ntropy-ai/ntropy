@@ -30,7 +30,9 @@ class Vector(BaseModel):
     size: int
     data_type: str
     content: Union[str, None] = None
-    metadata: dict = Field(default={})
+    document_metadata: dict = Field(default={})
+    output_metadata: dict = Field(default={})
+    #metadata: dict = Field(default={})
 
     class Config:
         extra = "allow"
