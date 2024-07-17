@@ -35,4 +35,5 @@ jobs:
     - name: Build package
       run: poetry build
     - name: Publish package
+      oidc: false
       run: poetry publish --username __token__ --password "${{ secrets.PYPI }}"
