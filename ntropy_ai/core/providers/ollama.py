@@ -1,11 +1,11 @@
 import ollama
 from pydantic import BaseModel
-from ntropy.core import utils
-from ntropy.core.utils.base_format import Document
+from ntropy_ai.core import utils
+from ntropy_ai.core.utils.base_format import Document
 from typing import List
 import warnings
-from ntropy.core.utils.chat import ChatManager
-from ntropy.core.utils import save_img_to_temp_file
+from ntropy_ai.core.utils.chat import ChatManager
+from ntropy_ai.core.utils import save_img_to_temp_file
 
 
 

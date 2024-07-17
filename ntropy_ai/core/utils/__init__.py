@@ -1,7 +1,7 @@
 import tempfile
 from PIL import Image
 import requests
-from ntropy.core.utils.base_format import Document
+from ntropy_ai.core.utils.base_format import Document
 import os
 
 

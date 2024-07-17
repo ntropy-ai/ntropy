@@ -1,15 +1,15 @@
 from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator
 from typing import Union, List, Dict, Any
 import clip as OpenaiCLIP # pip install git+https://github.com/openai/CLIP.git
-from ntropy.core.utils.settings import ModelsBaseSettings
-from ntropy.core.utils.connections_manager import ConnectionManager
-from ntropy.core.utils.base_format import Document, TextChunk, Vector
-from ntropy.core.utils import save_img_to_temp_file
+from ntropy_ai.core.utils.settings import ModelsBaseSettings
+from ntropy_ai.core.utils.connections_manager import ConnectionManager
+from ntropy_ai.core.utils.base_format import Document, TextChunk, Vector
+from ntropy_ai.core.utils import save_img_to_temp_file
 from datetime import datetime
 import torch
 from PIL import Image
 import warnings
-from ntropy.core.utils.chat import ChatManager, ChatHistory
+from ntropy_ai.core.utils.chat import ChatManager, ChatHistory
 import openai as openaiClient
 import re
 import json

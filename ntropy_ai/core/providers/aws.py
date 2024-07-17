@@ -6,9 +6,9 @@ import json
 from datetime import datetime
 import warnings
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
-from ntropy.core.utils.base_format import Vector, Document, TextChunk
-from ntropy.core.utils.settings import ModelsBaseSettings
-from ntropy.core.utils.connections_manager import ConnectionManager
+from ntropy_ai.core.utils.base_format import Vector, Document, TextChunk
+from ntropy_ai.core.utils.settings import ModelsBaseSettings
+from ntropy_ai.core.utils.connections_manager import ConnectionManager
 import boto3
 
 

@@ -1,5 +1,5 @@
 from pinecone import Pinecone
-from ntropy.core.utils.settings import ModelsBaseSettings
+from ntropy_ai.core.utils.settings import ModelsBaseSettings
 
 def list_models(by_provider: str = None, models_only: bool = False, embeddings_only: bool = False):
     # will return a dir with all the providers and model, you can filter with a provider (eg "openai") or with embeddings_only=True or models_only=True
