@@ -1355,4 +1355,4 @@ rag-vectorstore-pinecone = ["pinecone-client"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "fb1472f3c5813e9086c1aa7c491f10269340a31f393d22b027164ad9656b7fca"
+content-hash = "21bdfb57b4f223cac5f436a3572856768644ebfb3e0c1913d1dad628725ba2e6"
