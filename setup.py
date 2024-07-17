@@ -35,6 +35,7 @@ setup(
     author='Hugo Le Belzic',
     author_email='hugolebelzic@gmail.com',
     description='Ntropy AI: unleash the power of multimodal agents',
+    long_description="",
     url='https://github.com/ntropy-ai/ntropy',
     classifiers=[
         'Programming Language :: Python :: 3',
