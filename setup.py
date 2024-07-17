@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ntropy',
+    name='ntropy-ai',
     version='0.0.1',
     packages=find_packages(include=['ntropy', 'ntropy.*']),
     install_requires=[
