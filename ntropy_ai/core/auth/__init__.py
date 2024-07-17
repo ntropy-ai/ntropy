@@ -5,8 +5,8 @@ from tabulate import tabulate
 from pydantic import BaseModel
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
-from ntropy.core.utils.settings import ModelsBaseSettings
-from ntropy.core.utils.connections_manager import ConnectionManager
+from ntropy_ai.core.utils.settings import ModelsBaseSettings
+from ntropy_ai.core.utils.connections_manager import ConnectionManager
 
 class BaseAuth():
     """
