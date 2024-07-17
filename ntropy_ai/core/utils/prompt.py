@@ -1,11 +1,7 @@
 
-from ntropy.core.utils.base_format import Vector
-from ntropy.core.utils import save_img_to_temp_file
+from ntropy_ai.core.utils.base_format import Vector
+from ntropy_ai.core.utils import save_img_to_temp_file
 from typing import List
-import os
-from PIL import Image
-import tempfile
-import requests
 
 class RagPrompt():
     """

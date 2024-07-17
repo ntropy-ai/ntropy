@@ -1,13 +1,12 @@
-from ntropy.core.utils.connections_manager import ConnectionManager
+from ntropy_ai.core.utils.connections_manager import ConnectionManager
 import warnings
 from pinecone import ServerlessSpec
-from ntropy.core.utils.base_format import Vector, Document
+from ntropy_ai.core.utils.base_format import Vector, Document
 from typing import List
-from ntropy.core.utils.settings import ModelsBaseSettings
-from ntropy.core import utils
+from ntropy_ai.core.utils.settings import ModelsBaseSettings
+from ntropy_ai.core import utils
 from pinecone import Pinecone as PineconeLib
 import json
-import datetime
 
 
 def get_client():
