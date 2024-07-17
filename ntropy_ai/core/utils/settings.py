@@ -1,5 +1,5 @@
 
-from ntropy.core.utils.auth_format import *
+from ntropy_ai.core.utils.auth_format import *
 
 
 class ModelsBaseSettings():
@@ -7,7 +7,7 @@ class ModelsBaseSettings():
         self.providers_list_map = {}
 
         try:
-            from ntropy.core.providers import aws
+            from ntropy_ai.core.providers import aws
             self.providers_list_map["AWS"] = {
                 "auth": AWSAuth,
                 "connect": aws.AWSConnection,
@@ -29,7 +29,7 @@ class ModelsBaseSettings():
             pass
 
         try:
-            from ntropy.core.providers.openai import OpenAIConnection, OpenAIEmbeddings, OpenaiModel, OpenAIEmbeddingModels
+            from ntropy_ai.core.providers.openai import OpenAIConnection, OpenAIEmbeddings, OpenaiModel, OpenAIEmbeddingModels
             self.providers_list_map["OpenAI"] = {
                 "auth": OpenAIAuth,
                 "connect": OpenAIConnection,
@@ -51,7 +51,7 @@ class ModelsBaseSettings():
 
 
         try: 
-            from ntropy.core.vector_store.pinecone import PineconeConnection
+            from ntropy_ai.core.vector_store.pinecone import PineconeConnection
             self.providers_list_map["Pinecone"] = {
                 "auth": PineconeAuth,
                 "connect": PineconeConnection,
@@ -61,7 +61,7 @@ class ModelsBaseSettings():
 
         # models providers
         try:
-            from ntropy.core.providers import ollama
+            from ntropy_ai.core.providers import ollama
             self.providers_list_map['Ollama'] = {
                 'functions': {
                     'generate': ollama.OllamaModel.generate,
