@@ -34,7 +34,7 @@ setup(
     # Additional metadata
     author='Hugo Le Belzic',
     author_email='hugolebelzic@gmail.com',
-    description='Ntropy ai',
+    description='Ntropy AI: unleash the power of multimodal agents',
     url='https://github.com/HugoLB0/ntropy',
     classifiers=[
         'Programming Language :: Python :: 3',
