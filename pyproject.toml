@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ntropy-ai"
-version = "0.1.1"
+version = "0.0.1-alpha"
 description = "Unleash the power of multimodal agents"
 authors = ["Hugo Le Belzic <hugolebelzic@gmail.com>"]
 license = "AGPL-3.0"
