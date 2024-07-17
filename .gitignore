@@ -13,3 +13,4 @@ build/
 dist/
 ntropy.egg-info/
 local_test/**
+*.pem

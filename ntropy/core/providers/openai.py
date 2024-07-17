@@ -1,6 +1,5 @@
-from pydantic import BaseModel, Field, ConfigDict
-from typing import Union
-
+from pydantic import BaseModel, Field, ConfigDict, ValidationError, field_validator
+from typing import Union, List, Dict, Any
 import clip as OpenaiCLIP # pip install git+https://github.com/openai/CLIP.git
 from ntropy.core.utils.settings import ModelsBaseSettings
 from ntropy.core.utils.connections_manager import ConnectionManager
@@ -10,10 +9,11 @@ from datetime import datetime
 import torch
 from PIL import Image
 import warnings
-from ntropy.core import utils
 from ntropy.core.utils.chat import ChatManager, ChatHistory
 import openai as openaiClient
-
+import re
+import json
+        
 
 def get_client():
     """
@@ -97,6 +97,50 @@ class OpenAIConnection():
         return self.other_setting
 
 
+
+# openai tool format 
+
+class ToolFunctionParameters(BaseModel):
+        type: str = "object"
+        properties: Dict[str, Any]
+        required: List[str]
+
+        @field_validator('properties')
+        def properties_not_empty(cls, v):
+            if not v:
+                raise ValueError('properties cannot be empty')
+            return v
+
+        @field_validator('required')
+        def required_not_empty(cls, v):
+            if not v or not isinstance(v, list) or len(v) == 0:
+                raise ValueError('required must be a list and contain at least one field')
+            return v
+
+class ToolFunction(BaseModel):
+        name: str
+        description: str
+        parameters: ToolFunctionParameters  # Fix: Reference the correct class
+
+        @field_validator('name')
+        def name_no_spaces(cls, v):
+            if ' ' in v:
+                raise ValueError('name must not contain spaces')
+            if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', v):
+                raise ValueError('name must be a valid Python function name')
+            return v
+
+        @field_validator('description')
+        def description_not_empty(cls, v):
+            if not v:
+                raise ValueError('description is required')
+            return v
+
+class Tool(BaseModel):
+        type: str = "function"
+        function: ToolFunction
+
+
 class utils:
     """
     Utility class for various helper functions.
@@ -110,21 +154,65 @@ class utils:
 
         Returns:
             list: A list of formatted messages.
+
         """
         messages = []
         for message in chat:
-            content = [{"type": "text", "text": message['content']}]
-            if message['images']:
-                for image in message['images']:
-                    if image.startswith("http"):
-                        content.append({
-                            "type": "image_url",
-                            "image_url": {"url": image}
-                        })
-                    else:
-                        raise ValueError("Image must be a URL for OpenAI")
-            messages.append({"role": message['role'], "content": content})
+            if message['role'] in ['user', 'assistant']:
+                content = [{"type": "text", "text": message['content']}]
+                if message['images']:
+                    for image in message['images']:
+                        if image.startswith("http"):
+                            content.append({
+                                "type": "image_url",
+                                "image_url": {"url": image}
+                            })
+                        else:
+                            raise ValueError("Image must be a URL for OpenAI")
+                messages.append({"role": message['role'], "content": content})
+            elif message['role'] == 'function':
+                messages.append(
+                    {
+                      "role": "assistant",
+                      "content": [
+                        {
+                          "type": "text",
+                          "text": ""
+                        }
+                      ],
+                      "tool_calls": [
+                        {
+                          "id": message['tool_call']['id'],
+                          "type": "function",
+                          "function": {
+                            "name": message['tool_call']['tool_name'],
+                            "arguments": json.dumps(message['tool_call']['arguments'])
+                          }
+                        }
+                      ]
+                    }
+                )
+                messages.append({"role": 'tool', "content": [{"type": "text", "text": message['tool_call_response']}], "tool_call_id": message['tool_call']['id']})
         return messages
+    
+    def validate_tool_format(tools: list):
+        for tool in tools:
+            try:
+                Tool(**tool)
+            except ValidationError as e:
+                print(f"Invalid tool format: {e}")
+
+    def parse_tool_call(response: openaiClient.ChatCompletion, function_caller: dict):
+        for tool_call in response.choices[0].message.tool_calls:
+            tool_name = tool_call.function.name
+            arguments = json.loads(tool_call.function.arguments)
+            if tool_name in function_caller:
+                return function_caller[tool_name](*list(arguments.values())), {'tool_name': tool_name, 'arguments': arguments, 'id': tool_call.id}
+            else:
+                raise ValueError(f"Tool {tool_name} not found in function_caller.")
+
+
+
     
 
 
@@ -280,7 +368,15 @@ class OpenaiModel():
     """
     Class to manage interactions with the OpenAI model.
     """
-    def __init__(self, model_name: str, system_prompt: str = None, retriever: object = None, agent_prompt: BaseModel = None):
+    def __init__(
+            self, 
+            model_name: str, 
+            system_prompt: str = None, 
+            retriever: object = None, 
+            agent_prompt: BaseModel = None,
+            tools: list = None, 
+            tools_choice: str = "auto",
+            function_caller: dict = None):
         """
         Initialize the OpenaiModel instance.
 
@@ -299,6 +395,19 @@ class OpenaiModel():
             self.history.add_message(role='system', content=system_prompt)
         self.agent_prompt = agent_prompt
         self.openai_client = get_client()
+        self.tools = tools
+        self.tools_choice = tools_choice
+        self.function_caller = function_caller
+
+        if self.tools is not None:
+            # verify tool format
+            utils.validate_tool_format(self.tools)
+
+        if self.tools is not None and self.retriever is not None:
+            raise ValueError("You cannot use tools and a retriever at the same time. Please choose between tools and RAG.")
+
+            
+
 
     # note that OpenAI requires image url, and it has a specific chat format too, that's why we have a format_chat_to_openai_format function
     @require_login
@@ -326,6 +435,7 @@ class OpenaiModel():
             # print('used docs: ', prompt.context_doc) access source if you want
             
             # add the prompt and the context to the chat history
+
             if prompt.images_list:
                 self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
             else:
@@ -335,6 +445,28 @@ class OpenaiModel():
                 model=self.model_name,
                 messages=utils.format_chat_to_openai_format(self.history.get_history())
             )
+        
+        elif self.tools is not None:
+            self.history.add_message(role='user', content=query, images=images, tools=self.tools)
+            response = self.openai_client.chat.completions.create(
+                model=self.model_name,
+                messages=utils.format_chat_to_openai_format(self.history.get_history()),
+                tools=self.tools,
+                tool_choice=self.tools_choice
+            )
+            if not response.choices[0].message.tool_calls:
+                return response.choices[0].message.content
+
+            tool_call_res, tool_call = utils.parse_tool_call(response, self.function_caller)
+            self.history.add_message(role='function', tool_call=tool_call, tool_call_response=tool_call_res)   
+            response = self.openai_client.chat.completions.create(
+                    model=self.model_name,
+                    messages=utils.format_chat_to_openai_format(self.history.get_history())
+                )
+            self.history.add_message(role='assistant', content=response.choices[0].message.content)
+            return response.choices[0].message.content
+
+  
         else:
             for image in images:
                 if not image.startswith('http'):
