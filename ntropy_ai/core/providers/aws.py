@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.fields import PydanticUndefined
-from typing import Union, List, Callable
+from typing import Union, List
 import base64
 import json
 from datetime import datetime
