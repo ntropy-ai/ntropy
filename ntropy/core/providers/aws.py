@@ -200,7 +200,7 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
     output_metadata = {
         'model': model,
         'model_settings': model_settings,
-        'timestamp': datetime.now()
+        'timestamp': datetime.now().isoformat()
     }
     
     # Extract text and image inputs from the document
