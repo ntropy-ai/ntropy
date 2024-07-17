@@ -30,8 +30,8 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.extras]
-providers-aws = ["boto3", "botocore"]
-providers-openai = ["openai", "torch", "torchvision"]
-document-instance-pdf = ["pymupdf"]
-rag-vectorstore-pinecone = ["pinecone-client"]
-providers-ollama = ["ollama"]
+providers_aws = ["boto3", "botocore"]
+providers_openai = ["openai", "torch", "torchvision"]
+document_instance_pdf = ["pymupdf"]
+rag_vectorstore_pinecone = ["pinecone-client"]
+providers_ollama = ["ollama"]
