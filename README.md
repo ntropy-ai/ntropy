@@ -27,7 +27,7 @@ pip install ntropy-ai
 👤 **Hugo Le Belzic & Darya Todoskova**
 
 * Twitter: [@hugolb05](https://twitter.com/hugolb05) & [@ZorkotDasha](https://twitter.com/ZorkotDasha)
-* Github: [@HugoLB0](https://github.com/HugoLB0) & [@zorkotdasha](https://github.com/zorkotdasha)
+* Github: [@HugoLB0](https://github.com/HugoLB0) & [@zorkotdasha](https://github.com/daryatodoskova)
 * LinkedIn: [@hugolebelzic](https://linkedin.com/in/hugolebelzic) & [@zorkotdasha](https://www.linkedin.com/in/darya-todoskova-zorkot-3005181b8/)
 
 ## 🤝 Contributing
@@ -40,6 +40,6 @@ Give a ⭐️ if this project helped you!
 
 ## 📝 License
 
-Copyright © 2024 [Hugo Le Belzic](https://github.com/HugoLB0) & [Darya Todoskova](https://github.com/zorkotdasha).<br />
+Copyright © 2024 [Hugo Le Belzic](https://github.com/HugoLB0) & [Darya Todoskova](https://github.com/daryatodoskova).<br />
 This project is [AGPL--3.0 ](https://github.com/ntropy-ai/ntropy/blob/main/LICENSE.txt) licensed.
 
