@@ -112,12 +112,12 @@ class BaseAuth():
         self.db.commit()
         self.db.close()
 
-    def connect(self, private_key: str = None, db_path: str = None, key_file: str = None):
+    def connect(self, private_key_file: str = None, db_path: str = None):
         """
         Connects to the SQLite database and loads the private key.
 
         Args:
-            private_key (str): The private key as a string.
+            private_key (str): The private key file path as a string.
             db_path (str): The path to the database file.
             key_file (str): The path to the private key file.
         """
@@ -125,17 +125,15 @@ class BaseAuth():
             self.db_location = db_path
         if not os.path.exists(self.db_location):
             raise Exception("Database file does not exist. Please create the database first using create_db().")
-        if key_file:
-            with open(key_file, 'r') as file:
-                private_key = file.read()
-            file.close()
-            self.private_key = private_key.encode('utf-8')
-            
+        
+        if private_key_file:
+            with open(private_key_file, 'rb') as file:
+                private_key_data = file.read()
         else:
-            self.private_key = private_key.encode('utf-8')
+            raise Exception("Private key file does not exist.")
 
         self.private_key = serialization.load_pem_private_key(
-            private_key.encode('utf-8'),
+            private_key_data,
             password=None,
         )
         self.db = sqlite3.connect(self.db_location)

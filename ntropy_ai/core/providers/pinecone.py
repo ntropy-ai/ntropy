@@ -1,11 +1,11 @@
 from ntropy_ai.core.utils.connections_manager import ConnectionManager
 import warnings
-from pinecone import ServerlessSpec
+from ntropy_ai.core.providers.pinecone import ServerlessSpec
 from ntropy_ai.core.utils.base_format import Vector, Document
 from typing import List
 from ntropy_ai.core.utils.settings import ModelsBaseSettings
 from ntropy_ai.core import utils
-from pinecone import Pinecone as PineconeLib
+from ntropy_ai.core.providers.pinecone import Pinecone as PineconeLib
 import json
 
 
@@ -193,7 +193,7 @@ class Pinecone:
 
 
         results =  self.get_index(self.index_name).query(
-            vector=query_vector.vector,
+            vector=query_vector.vector if isinstance(query_vector, Vector) else query_vector,
             top_k=self.embedding_model_settings_top_k if self.embedding_model_settings_top_k else top_k,
             include_values=self.embedding_model_settings_include_values if self.embedding_model_settings_include_values else include_values,
             namespace=namespace
