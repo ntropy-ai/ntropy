@@ -1,5 +1,5 @@
 import pymupdf
-from ntropy.core.utils.base_format import Document
+from ntropy_ai.core.utils.base_format import Document
 from typing import List
 import os
 import tempfile

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, ConfigDict
 from pydantic.fields import PydanticUndefined
-from typing import Union
+from typing import Union, List, Callable
 import base64
 import json
 from datetime import datetime
@@ -10,6 +10,13 @@ from ntropy_ai.core.utils.base_format import Vector, Document, TextChunk
 from ntropy_ai.core.utils.settings import ModelsBaseSettings
 from ntropy_ai.core.utils.connections_manager import ConnectionManager
 import boto3
+import os
+import random
+import time
+from ntropy_ai.core.utils import Loader, ensure_local_file
+from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
+from ntropy_ai.core.utils.chat import ChatManager, ChatHistory
+
 
 
 # AWSConnection class handles the connection to AWS services using boto3
@@ -103,10 +110,103 @@ class utils:
                 raise Exception("AWS connection not found. Please initialize the connection.")
             return func(*args, **kwargs)
         return wrapper
-
-    @staticmethod
+    
     @require_login
-    def upload_to_s3(file_name: str, bucket: str = None, object_name: str = None):
+    def textract(document: str, retries: int = 0):
+
+        if document.startswith("https://"):
+            try:
+                document_s3_bucket = document.split('//')[1].split('.s3.amazonaws.com/')[0]
+                document_s3_path = document.split('.s3.amazonaws.com/')[1]
+            except IndexError:
+                raise ValueError("Invalid S3 URL format. Please provide a valid S3 URL.")
+            
+            if not document_s3_path or not document_s3_bucket:
+                if retries > 1:
+                    raise ValueError(f"Invalid S3 URL format. Tried to upload to S3 bucket {retries} times. Please provide a valid S3 URL.")
+                # attempt to upload to a s3 bucket
+                document = s3_utils.upload_to_s3(document)
+                # recursive recall the function 
+                return utils.textract(document, retries + 1)
+        else:
+            raise ValueError("Invalid S3 URL format. Please provide a valid S3 URL.")
+            
+        
+        if os.path.exists(document):
+            document = s3_utils.upload_to_s3(document)
+            document_s3_bucket = document.split('//')[1].split('.s3.amazonaws.com/')[0]
+            document_s3_path = document.split('//')[1].split('.s3.amazonaws.com/')[1]
+            utils.textract(document, retries=0)
+
+        else:
+            if not document_s3_bucket or not document_s3_path:
+                raise ValueError("Invalid document format. Please provide a valid document containing a valid S3 URL or a local path.")
+
+        textract_client = utils.get_client().client("textract")
+        response = textract_client.start_document_text_detection(
+                   DocumentLocation={
+                       'S3Object': {
+                           'Bucket': document_s3_bucket, 
+                           'Name': document_s3_path
+                       }
+                   },
+                   ClientRequestToken=str(random.randint(1,1e10)))
+        jobid = response['JobId']
+
+        with Loader("Waiting for Textract Job to complete..."):
+            while True:
+                time.sleep(0.5)
+                response = textract_client.get_document_text_detection(JobId=jobid)
+                if response['JobStatus'] == 'SUCCEEDED':
+                    break
+        blocks = response['Blocks']
+        text = ''
+        for block in blocks:
+            if block['BlockType'] == 'LINE':
+                text += block['Text'] + '\n'
+
+        return Document(
+            content=text,
+            metadata={
+                's3_url': document
+            }
+        )
+    
+    def ensure_base64(image: str):
+        if image.startswith("http"):
+            image = ensure_local_file(image)
+        img = open(image, 'rb').read()
+        return base64.b64encode(img).decode('utf-8')
+    
+    def format_chat_to_bedrock_format(chat: ChatHistory):
+        messages = []
+        for message in chat:
+            if message['role'] in ['user', 'assistant']:
+                content = [{"type": "text", "text": message['content']}]
+                if message['images']:
+                    for image in message['images']:
+                        content.append({
+                                "type": "image",
+                                "source": {
+                                "type": "base64",
+                                "media_type": "image/jpeg",
+                                "data": utils.ensure_base64(image)
+                                }
+                            })
+                messages.append({"role": message['role'], "content": content})
+        return messages
+    
+
+class s3_utils:
+
+    def __init__(self, default_bucket: str = None):
+        if not default_bucket:
+            default_bucket = ModelsBaseSettings().providers_list_map["AWS"]["settings"]["default_s3_bucket"]
+        self.default_bucket = default_bucket
+        self.s3_client = utils.get_client().client("s3")
+
+    @utils.require_login
+    def upload_to_s3(self, file_name: str, bucket: str = None, object_name: str = None):
         """
         Uploads a file to an S3 bucket.
 
@@ -115,14 +215,14 @@ class utils:
             bucket (str, optional): The name of the S3 bucket. Defaults to the default S3 bucket in settings.
             object_name (str, optional): The name of the object in the S3 bucket. Defaults to the file name.
 
-        Returns:
-            str: The URL of the uploaded file, or None if an error occurred.
+            Returns:
+                str: The URL of the uploaded file, or None if an error occurred.
         """
-        s3_client = utils.get_client().client("s3")
-        bucket = ModelsBaseSettings().providers_list_map["AWS"]["settings"]["default_s3_bucket"]
+        if bucket:
+            self.default_bucket = bucket
         try:
-            s3_client.upload_file(file_name, bucket, object_name or file_name)
-            file_url = f"https://{bucket}.s3.amazonaws.com/{object_name or file_name}"
+            self.s3_client.upload_file(file_name, self.default_bucket, object_name or file_name)
+            file_url = f"https://{self.default_bucket}.s3.amazonaws.com/{object_name or file_name}"
         except FileNotFoundError:
             print("The file was not found")
             return None
@@ -130,6 +230,229 @@ class utils:
             print("Credentials not available")
             return None
         return file_url
+    
+    @utils.require_login
+    def list_bucket_objects(self, bucket: str = None, folder: str = None):
+        """
+        Lists the objects in an S3 bucket.
+
+        Args:
+            bucket (str): The name of the S3 bucket.
+
+        Returns:
+            list: A list of objects in the S3 bucket.
+        """
+        if bucket:
+            self.default_bucket = bucket
+        if folder:
+            response = self.s3_client.list_objects_v2(Bucket=self.default_bucket, Prefix=folder)
+        else:
+            response = self.s3_client.list_objects_v2(Bucket=self.default_bucket)
+        return [item['Key'] for item in response.get('Contents', [])]
+    
+    @utils.require_login
+    def download_from_s3(self, file_name: str, bucket: str = None, object_name: str = None):
+        """
+        Downloads a file from an S3 bucket.
+
+        Args:
+            file_name (str): The name of the file to be downloaded.
+            bucket (str, optional): The name of the S3 bucket. Defaults to the default S3 bucket in settings.
+            object_name (str, optional): The name of the object in the S3 bucket. Defaults to the file name.
+
+        Returns:
+            str: The path to the downloaded file, or None if an error occurred.
+        """
+        if bucket:
+            self.default_bucket = bucket
+        try:
+            self.s3_client.download_file(self.default_bucket, object_name or file_name, file_name)
+            file_path = os.path.abspath(file_name)
+        except FileNotFoundError:
+            print("The file was not found in the bucket")
+            return None
+        except NoCredentialsError:
+            print("Credentials not available")
+            return None
+        return file_path
+
+
+
+"""
+Open Search Serverless
+
+https://opensearch.org/docs/latest/clients/python-low-level/#connecting-to-amazon-opensearch-service
+https://github.com/opensearch-project/opensearch-py/blob/main/samples/knn/knn_basics.py
+"""
+@utils.require_login
+class OpenSearchServerless:
+    """
+    
+    host: cluster endpoint, for example: my-test-domain.us-east-1.aoss.amazonaws.com
+    """
+    def __init__(
+            self, 
+            host: str, 
+            default_index: str = None, 
+            region: str = "us-east-1"
+        ):
+        self.embedding_func = None
+        self.embedding_model_settings = None
+        self.embedding_model_name = None
+        self.default_index = default_index
+        self.credentials = utils.get_client().get_credentials()
+        self.host = host
+        self.awsv4auth = AWSV4SignerAuth(
+            self.credentials,
+            region,
+            'aoss' # service
+        )
+        self.opensearch_client = OpenSearch(
+            hosts = [{'host': self.host, 'port': 443}],
+            http_auth = self.awsv4auth,
+            use_ssl = True,
+            verify_certs = True,
+            connection_class = RequestsHttpConnection,
+            pool_maxsize = 20
+        )  
+    
+    def set_embeddings_model(self, model: str, model_settings: dict = None):
+        self.embedding_model_settings = model_settings
+        self.embedding_model_name = model
+        for provider in ModelsBaseSettings().providers_list_map:
+            if "embeddings_models" in ModelsBaseSettings().providers_list_map[provider]:
+                for model_name in ModelsBaseSettings().providers_list_map[provider]['embeddings_models']['models_map']:
+                    if model_name == model:
+                        self.embedding_func = ModelsBaseSettings().providers_list_map[provider]['functions']['embeddings']
+                        # this needs to be fixed !
+                        break
+        if not self.embedding_func:
+            raise Exception(f"model {model} not found !")
+
+    
+    def create_index(self, index_name: str, dimension: int):
+        if self.opensearch_client.indices.exists(index=index_name):
+            warnings.warn(f"Index {index_name} already exists.")
+            return 
+        self.opensearch_client.indices.create(
+            index_name,
+            body={
+                "settings": {"index.knn": True},
+                "mappings": {
+                    "properties": {
+                        "values": {"type": "knn_vector", "dimension": dimension},
+
+                    }
+                },
+            },
+        )
+
+
+    def add_vectors(self, vectors: List[float], index: str = None):
+        """
+        Adds vectors to the specified OpenSearch index using the bulk API.
+
+        Args:
+            vectors (List[Vector]): The list of vectors to add.
+            index (str, optional): The name of the index. Defaults to the default index.
+        """
+        index = index or self.default_index
+        if not index:
+            raise ValueError("Index must be specified either as a parameter or as a default index.")
+
+        actions = []
+        for vector in vectors:
+            action_metadata = {
+                "index": {
+                    "_index": index
+                }
+            }
+            document = {
+                "values": vector.vector,
+                "document_id": vector.document_id,
+                "content": vector.content,
+                "data_type": vector.data_type,
+                "document_metadata": json.dumps(vector.document_metadata) if isinstance(vector.document_metadata, dict) else vector.document_metadata,
+                "output_metadata": json.dumps(vector.output_metadata) if isinstance(vector.output_metadata, dict) else vector.output_metadata,
+                "metadata": json.dumps(vector.metadata) if isinstance(vector.metadata, dict) else vector.metadata
+            }
+            actions.append(action_metadata)
+            actions.append(document)
+
+        # Perform the bulk operation
+        response = self.opensearch_client.bulk(body=actions)
+        if response['errors']:
+            raise Exception("Errors occurred during bulk indexing: {}".format(response['items']))
+        
+    def query(
+            self, 
+            query_vector: List[float] = None, 
+            query_text: str = None,
+            index: str = None, 
+            top_k: int = 3
+        ):
+        index = index or self.default_index
+        model = self.embedding_model_name
+        model_settings = self.embedding_model_settings
+
+        if not model or not model_settings:
+            raise ValueError("model and model_settings are required !")
+        if not index:
+            raise ValueError("Index must be specified either as a parameter or as a default index.")
+        
+
+        if not query_vector:
+            query_vector_func = None
+            # if the user did not set a default embedding model but specified one in the parameters
+            if not self.embedding_func:
+                if not model_settings:
+                    if not self.embedding_model_settings:
+                        raise Exception("model settings is required to match the output format !")
+                    model_settings = self.embedding_model_settings
+                for provider in ModelsBaseSettings().providers_list_map:
+                    if "embeddings_models" in ModelsBaseSettings().providers_list_map[provider]:
+                        for model_name in ModelsBaseSettings().providers_list_map[provider]['embeddings_models']['models_map']:
+                            if model_name == model:
+                                query_vector_func = ModelsBaseSettings().providers_list_map[provider]['functions']['embeddings']
+                                break
+            else:
+                warnings.warn("using default embedding model")
+                query_vector_func = self.embedding_func
+            if not query_vector_func:
+                raise Exception(f"model {model} not found !")
+
+            if query_text:
+                document = Document(content=query_text, page_number=-1, data_type="text")
+            else:
+                raise Exception("query_text or query_image is required !")
+            query_vector = query_vector_func(model, document, model_settings)
+
+
+        search_query = {
+            "query": 
+            {"knn": 
+             {"values": {
+                 "vector": query_vector.vector if isinstance(query_vector, Vector) else query_vector,
+                   "k": top_k}}}
+        }
+        results = self.opensearch_client.search(index=index, body=search_query)
+        
+        final_out = []
+        for hit in results['hits']['hits']:
+            final_out.append(
+                Vector(
+                    score=hit['_score'],
+                    size=len(hit['_source']['values']),
+                    document_id=hit['_source']['document_id'],
+                    vector=hit['_source']['values'],
+                    content=hit['_source']['content'],
+                    data_type=hit['_source']['data_type'],
+                    document_metadata=json.loads(hit['_source']['document_metadata']),
+                    output_metadata=json.loads(hit['_source']['output_metadata']),
+                    metadata={**json.loads(hit['_source']['metadata']), "_id": hit['_id'], "_index": hit['_index']},
+                )
+            )
+        return final_out
 
 
 """
@@ -221,6 +544,7 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
     output_metadata['content'] = text_input
 
     if image_input:
+        image_input = ensure_local_file(image_input)
         body_fields["inputImage"] = base64.b64encode(open(image_input, 'rb').read()).decode('utf8')
         output_metadata['image_path'] = image_input
 
@@ -267,3 +591,103 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
         metadata=output_metadata
     )
 
+
+class AWSBedrockModelsSettings:
+
+    class AnthropicClaude3HaikuInput(BaseModel):
+        model_name: str = "anthropic.claude-3-haiku-20240307-v1:0"
+        model_settings: dict = Field(default_factory=lambda: {
+            "anthropic_version": "bedrock-2023-05-31",
+            "max_tokens": int,
+            "temperature": float,
+            "messages": dict()
+        })
+    model_config = ConfigDict(arbitrary_types_allowed=True, protected_namespaces=())
+
+
+class AWSBedrockModels():
+    """
+    """
+    def __init__(
+            self, 
+            model_name: str, 
+            system_prompt: str = None, 
+            retriever: object = None, 
+            agent_prompt: BaseModel = None,
+            temperature: float = 0.5,
+            max_tokens: int = 1024,
+            ):
+            if model_name not in ModelsBaseSettings().providers_list_map["AWS"]["models"]:
+                raise ValueError(f"Model {model_name} not found in AWS settings.")
+            self.model_name = model_name
+            self.temperature = temperature
+            self.max_tokens = max_tokens
+            self.system_prompt = system_prompt # 
+            self.retriever = retriever
+            self.history = ChatManager() # initialize empty chat history
+            # add system prompt
+            if system_prompt:
+                self.history.add_message(role='system', content=system_prompt)
+            self.agent_prompt = agent_prompt
+            self.aws_bedrock_client = utils.get_client().client("bedrock-runtime")
+
+    @utils.require_login
+    def chat(self, query: str, images: str = None):
+        if self.retriever:
+            context = []
+            if query:
+                context.extend(self.retriever(query_text=query))
+            elif query and images:
+                context.extend(self.retriever(query_image=images))
+            if not self.agent_prompt:
+                warnings.warn("agent_prompt is not defined.")
+            prompt = self.agent_prompt(query=query, context=context)
+            final_prompt = prompt.prompt
+            # print('used docs: ', prompt.context_doc) access source if you want
+            
+            # add the prompt and the context to the chat history
+
+            if prompt.images_list:
+                self.history.add_message(role='user', content=final_prompt, images=prompt.images_list)
+            else:
+                self.history.add_message(role='user', content=final_prompt)
+
+
+            # validate the model settings
+            model_settings = ModelsBaseSettings().providers_list_map["AWS"]["models"][self.model_name]().model_settings
+            model_settings['messages'] = utils.format_chat_to_bedrock_format(chat=self.history.get_history())
+            model_settings['max_tokens'] = self.max_tokens
+            model_settings['temperature'] = self.temperature
+            ModelsBaseSettings().providers_list_map["AWS"]["models"][self.model_name]().model_validate(model_settings)
+
+            model_requests = json.dumps(model_settings)
+            try:
+                # Invoke the model with the request.
+                response = self.aws_bedrock_client.invoke_model(modelId=self.model_name, body=model_requests)
+                model_response = json.loads(response["body"].read())
+                response_text = model_response["content"][0]["text"]
+                self.history.add_message(role='assistant', content=response_text)
+                return response_text
+
+            except Exception as e:
+                print(f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}")
+
+        
+        else:
+            self.history.add_message(role='user', content=query, images=images)
+            model_settings = ModelsBaseSettings().providers_list_map["AWS"]["models"][self.model_name]().model_settings
+            model_settings['messages'] = utils.format_chat_to_bedrock_format(chat=self.history.get_history())
+            model_settings['max_tokens'] = self.max_tokens
+            model_settings['temperature'] = self.temperature
+            ModelsBaseSettings().providers_list_map["AWS"]["models"][self.model_name]().model_validate(model_settings)
+            model_requests = json.dumps(model_settings)
+            try:
+                # Invoke the model with the request.
+                response = self.aws_bedrock_client.invoke_model(modelId=self.model_name, body=model_requests)
+                model_response = json.loads(response["body"].read())
+                response_text = model_response["content"][0]["text"]
+                self.history.add_message(role='assistant', content=response_text)
+                return response_text
+
+            except Exception as e:
+                print(f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}")

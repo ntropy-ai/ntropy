@@ -21,6 +21,9 @@ class ModelsBaseSettings():
                         "amazon.titan-embed-text-v2:0": aws.AWSEmbeddingModels.AmazonTitanEmbedTextV2Input
                     }
                 },
+                "models": {
+                    "anthropic.claude-3-haiku-20240307-v1:0": aws.AWSBedrockModelsSettings.AnthropicClaude3HaikuInput
+                },
                 'settings': {
                     'default_s3_bucket': 'ntropy-test'
                 }
@@ -51,7 +54,7 @@ class ModelsBaseSettings():
 
 
         try: 
-            from ntropy_ai.core.vector_store.pinecone import PineconeConnection
+            from ntropy_ai.core.providers.pinecone import PineconeConnection
             self.providers_list_map["Pinecone"] = {
                 "auth": PineconeAuth,
                 "connect": PineconeConnection,
