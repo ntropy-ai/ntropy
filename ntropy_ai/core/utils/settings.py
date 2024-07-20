@@ -15,6 +15,7 @@ class ModelsBaseSettings():
                     "embeddings": aws.AWSEmbeddings,
                     "chat": aws.AWSBedrockModels.chat
                 },
+                
                 "embeddings_models": {
                     # input format map because each models has different input format
                     "models_map": {
