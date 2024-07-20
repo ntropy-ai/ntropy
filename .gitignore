@@ -8,7 +8,7 @@ __pycache__/
 .tox/
 .venv/
 .venv/
-core/utils/db/Login.db
+ntropy_ai/core/utils/db/Login.db
 build/
 dist/
 ntropy.egg-info/

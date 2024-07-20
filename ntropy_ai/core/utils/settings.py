@@ -13,6 +13,7 @@ class ModelsBaseSettings():
                 "connect": aws.AWSConnection,
                 "functions": {
                     "embeddings": aws.AWSEmbeddings,
+                    "chat": aws.AWSBedrockModels.chat
                 },
                 "embeddings_models": {
                     # input format map because each models has different input format
@@ -68,7 +69,9 @@ class ModelsBaseSettings():
             self.providers_list_map['Ollama'] = {
                 'functions': {
                     'generate': ollama.OllamaModel.generate,
-                    'chat': ollama.OllamaModel.chat
+                    'chat': ollama.OllamaModel.chat,
+                    'sgenerate': ollama.OllamaModel.sgenerate,
+                    'schat': ollama.OllamaModel.schat,
                 },
                 'models': {
                     model: model for model in ollama.list_models()
