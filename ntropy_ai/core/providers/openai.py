@@ -433,7 +433,7 @@ class OpenaiModel():
             if query:
                 context.extend(self.retriever(query_text=query))
             elif query and images:
-                if len(images) > 1:
+                if images and len(images) > 1:
                     logger.warning("Only one image is supported for now.")
                 context.extend(self.retriever(query_image=images[0]))
             if not self.agent_prompt:

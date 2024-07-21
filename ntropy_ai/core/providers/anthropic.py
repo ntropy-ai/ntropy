@@ -99,12 +99,13 @@ class utils:
                 if message['images']:
                     for image in message['images']:
                         if image.startswith("http"):
+                            local_file_path = ensure_local_file(image)
                             content.append({
                                 "type": "image",
                                 "source": {
                                     "type": "base64",
                                     "media_type": f"image/{os.path.splitext(image)[1][1:]}", # need to make sure orioginal image is png
-                                    "data": base64.b64encode(open(ensure_local_file(image), "rb").read()).decode('utf-8')
+                                    "data": base64.b64encode(open(local_file_path, "rb").read()).decode('utf-8')
                                 }
                             })
                         else:

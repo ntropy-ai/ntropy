@@ -5,6 +5,7 @@ from ntropy_ai.core.utils.settings import logger
 from ntropy_ai.core.utils.chat import ChatManager
 from ntropy_ai.core.utils import save_img_to_temp_file
 import logging
+from ntropy_ai.core.utils.settings import logger
 
 
 def list_models():
