@@ -35,7 +35,7 @@ class AWSConnection:
         self.aws_access_key_id = access_key
         self.aws_secret_access_key = secret_access_key
         # Set the region name, defaulting to 'us-east-1' if not provided
-        self.region_name = other_setting.get("region_name", "us-east-1")
+        self.region_name = other_setting.get("region_name", "us-east-1") if other_setting else "us-east-1"
         self.session = None
 
     def init_connection(self):
@@ -197,7 +197,7 @@ class utils:
         return messages
     
 
-class s3_utils:
+class s3_utils():
 
     def __init__(self, default_bucket: str = None):
         if not default_bucket:

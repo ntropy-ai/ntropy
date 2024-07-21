@@ -367,6 +367,12 @@ def OpenAIEmbeddings(model: str, document: Document | TextChunk | str, model_set
 class OpenaiModel():
     """
     Class to manage interactions with the OpenAI model.
+
+    support:
+    - gpt-4o-mini
+    - gpt 4o
+    - gpt-4-turbo
+    - gpt-4
     """
     def __init__(
             self, 
@@ -411,7 +417,7 @@ class OpenaiModel():
 
     # note that OpenAI requires image url, and it has a specific chat format too, that's why we have a format_chat_to_openai_format function
     @require_login
-    def chat(self, query: str, images: str = None):
+    def chat(self, query: str, images: list = []):
         """
         Generate a chat response from the OpenAI model.
 
@@ -427,7 +433,9 @@ class OpenaiModel():
             if query:
                 context.extend(self.retriever(query_text=query))
             elif query and images:
-                context.extend(self.retriever(query_image=images))
+                if len(images) > 1:
+                    warnings.warn("Only one image is supported for now.")
+                context.extend(self.retriever(query_image=images[0]))
             if not self.agent_prompt:
                 warnings.warn("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)

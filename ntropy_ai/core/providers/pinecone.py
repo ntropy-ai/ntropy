@@ -1,11 +1,11 @@
 from ntropy_ai.core.utils.connections_manager import ConnectionManager
 import warnings
-from ntropy_ai.core.providers.pinecone import ServerlessSpec
 from ntropy_ai.core.utils.base_format import Vector, Document
 from typing import List
 from ntropy_ai.core.utils.settings import ModelsBaseSettings
 from ntropy_ai.core import utils
-from ntropy_ai.core.providers.pinecone import Pinecone as PineconeLib
+from pinecone import Pinecone as PineconeLib
+from pinecone import ServerlessSpec
 import json
 
 
@@ -56,8 +56,9 @@ class Pinecone:
                 warnings.warn("No index name specified for Pinecone, please provide an index name !")
             #if not self.other_settings:
             #    raise Exception("No index name specified for Pinecone, please provide an index name !")
-            self.index_name = self.other_settings.get("index_name", None)
-            warnings.warn(f"No index name specified, using default index {self.index_name}")
+            self.index_name = self.other_settings.get("index_name", None) if self.other_settings else None
+            if self.index_name:
+                warnings.warn(f"No index name specified, using default index {self.index_name}")
         else:
             self.index_name = index_name
             try:
