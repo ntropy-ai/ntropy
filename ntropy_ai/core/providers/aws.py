@@ -524,8 +524,7 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
         'model': model,
         'model_settings': model_settings,
         'timestamp': datetime.now().isoformat()
-    }
-    
+    }    
     # Extract text and image inputs from the document
     text_input = document.content if isinstance(document, Document) or isinstance(document, str) else document.chunk
     image_input = document.image if isinstance(document, Document) else None

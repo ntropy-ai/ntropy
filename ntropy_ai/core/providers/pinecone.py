@@ -157,7 +157,6 @@ class Pinecone:
             if not self.embedding_model_name:
                 raise Exception("model is required !")
             model = self.embedding_model_name
-
         if not query_vector:
             query_vector_func = None
             # if the user did not set a default embedding model but specified one in the parameters
@@ -165,7 +164,6 @@ class Pinecone:
                 if not model_settings:
                     if not self.embedding_model_settings:
                         raise Exception("model settings is required to match the output format !")
-                    model_settings = self.embedding_model_settings
                 for provider in ModelsBaseSettings().providers_list_map:
                     if "embeddings_models" in ModelsBaseSettings().providers_list_map[provider]:
                         for model_name in ModelsBaseSettings().providers_list_map[provider]['embeddings_models']['models_map']:
@@ -174,6 +172,7 @@ class Pinecone:
                                 break
             else:
                 logger.warning("using default embedding model")
+                model_settings = self.embedding_model_settings
                 query_vector_func = self.embedding_func
             if not query_vector_func:
                 raise Exception(f"model {model} not found !")
@@ -187,6 +186,7 @@ class Pinecone:
                     document = Document(image=query_image, page_number=-1, data_type="image")
             else:
                 raise Exception("query_text or query_image is required !")
+            
             query_vector = query_vector_func(model, document, model_settings)
 
         if query_vector.size != query_dimension:
