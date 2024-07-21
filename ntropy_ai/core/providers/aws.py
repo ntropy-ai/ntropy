@@ -4,7 +4,6 @@ from typing import Union, List
 import base64
 import json
 from datetime import datetime
-import warnings
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 from ntropy_ai.core.utils.base_format import Vector, Document, TextChunk
 from ntropy_ai.core.utils.settings import ModelsBaseSettings
@@ -16,7 +15,8 @@ import time
 from ntropy_ai.core.utils import Loader, ensure_local_file
 from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 from ntropy_ai.core.utils.chat import ChatManager, ChatHistory
-
+from ntropy_ai.core.utils.settings import logger
+import logging
 
 
 # AWSConnection class handles the connection to AWS services using boto3
@@ -48,7 +48,7 @@ class AWSConnection:
                 aws_secret_access_key=self.aws_secret_access_key,
                 region_name=self.region_name
             )
-            print("AWS connection initialized successfully.")
+            logger.info("AWS connection initialized successfully.")
         except (NoCredentialsError, PartialCredentialsError) as e:
             raise Exception(f"Error initializing AWS connection: {e}")
 
@@ -224,10 +224,10 @@ class s3_utils():
             self.s3_client.upload_file(file_name, self.default_bucket, object_name or file_name)
             file_url = f"https://{self.default_bucket}.s3.amazonaws.com/{object_name or file_name}"
         except FileNotFoundError:
-            print("The file was not found")
+            logger.error("The file was not found")
             return None
         except NoCredentialsError:
-            print("Credentials not available")
+            logger.error("Credentials not available")
             return None
         return file_url
     
@@ -269,10 +269,10 @@ class s3_utils():
             self.s3_client.download_file(self.default_bucket, object_name or file_name, file_name)
             file_path = os.path.abspath(file_name)
         except FileNotFoundError:
-            print("The file was not found in the bucket")
+            logger.error("The file was not found in the bucket")
             return None
         except NoCredentialsError:
-            print("Credentials not available")
+            logger.error("Credentials not available")
             return None
         return file_path
 
@@ -332,7 +332,7 @@ class OpenSearchServerless:
     
     def create_index(self, index_name: str, dimension: int):
         if self.opensearch_client.indices.exists(index=index_name):
-            warnings.warn(f"Index {index_name} already exists.")
+            logger.warning(f"Index {index_name} already exists.")
             return 
         self.opensearch_client.indices.create(
             index_name,
@@ -416,7 +416,7 @@ class OpenSearchServerless:
                                 query_vector_func = ModelsBaseSettings().providers_list_map[provider]['functions']['embeddings']
                                 break
             else:
-                warnings.warn("using default embedding model")
+                logger.warning("using default embedding model")
                 query_vector_func = self.embedding_func
             if not query_vector_func:
                 raise Exception(f"model {model} not found !")
@@ -514,7 +514,7 @@ def AWSEmbeddings(model: str, document: Document | TextChunk | str, model_settin
     embedding_model_setting = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_models"]["models_map"].get(model).ModelInputSchema
     if model_settings is None:
         model_settings = dict()
-        warnings.warn(f"Model settings for model {model} not provided. Using default settings.")
+        logger.warning(f"Model settings for model {model} not provided. Using default settings.")
         model_settings_ = ModelsBaseSettings().providers_list_map["AWS"]["embeddings_models"]["models_map"].get(model)().model_settings    
     if embedding_model_setting is None:
         raise ValueError(f"Model {model} not found in settings. Please check the model name.")
@@ -640,7 +640,7 @@ class AWSBedrockModels():
             elif query and images:
                 context.extend(self.retriever(query_image=images))
             if not self.agent_prompt:
-                warnings.warn("agent_prompt is not defined.")
+                logger.error("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want
@@ -670,7 +670,7 @@ class AWSBedrockModels():
                 return response_text
 
             except Exception as e:
-                print(f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}")
+                logger.error(f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}")
 
         
         else:
@@ -690,4 +690,4 @@ class AWSBedrockModels():
                 return response_text
 
             except Exception as e:
-                print(f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}")
+                logger.error(f"ERROR: Can't invoke '{self.model_name}'. Reason: {e}")

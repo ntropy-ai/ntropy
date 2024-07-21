@@ -8,12 +8,12 @@ from ntropy_ai.core.utils import save_img_to_temp_file
 from datetime import datetime
 import torch
 from PIL import Image
-import warnings
+from ntropy_ai.core.utils.settings import logger
 from ntropy_ai.core.utils.chat import ChatManager, ChatHistory
 import openai as openaiClient
 import re
 import json
-        
+import logging
 
 def get_client():
     """
@@ -71,7 +71,7 @@ class OpenAIConnection():
         """
         try: 
             self.client = openaiClient.OpenAI(api_key=self.api_key)
-            print("OpenAI connection initialized successfully.")
+            logger.info("OpenAI connection initialized successfully.")
         except Exception as e:
             raise Exception(f"Error initializing OpenAI connection: {e}")
         
@@ -200,7 +200,7 @@ class utils:
             try:
                 Tool(**tool)
             except ValidationError as e:
-                print(f"Invalid tool format: {e}")
+                logger.error(f"Invalid tool format: {e}")
 
     def parse_tool_call(response: openaiClient.ChatCompletion, function_caller: dict):
         for tool_call in response.choices[0].message.tool_calls:
@@ -286,7 +286,7 @@ class CLIPmodel():
         if isinstance(input_document, Document):
             text_input = input_document.content
             if text_input:
-                warnings.warn("The input_document is a Document object. ClIP embeddings model has token limits. Please use TextChunk for embedding if you have long text.")
+                logger.warning("The input_document is a Document object. ClIP embeddings model has token limits. Please use TextChunk for embedding if you have long text.")
             image_input = input_document.image
         elif isinstance(input_document, TextChunk):
             text_input = input_document.chunk
@@ -434,10 +434,10 @@ class OpenaiModel():
                 context.extend(self.retriever(query_text=query))
             elif query and images:
                 if len(images) > 1:
-                    warnings.warn("Only one image is supported for now.")
+                    logger.warning("Only one image is supported for now.")
                 context.extend(self.retriever(query_image=images[0]))
             if not self.agent_prompt:
-                warnings.warn("agent_prompt is not defined.")
+                logger.error("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want

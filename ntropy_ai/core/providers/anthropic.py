@@ -3,10 +3,12 @@ import base64
 from ntropy_ai.core.utils.chat import ChatHistory, ChatManager
 from ntropy_ai.core.utils import ensure_local_file
 from ntropy_ai.core.utils.connections_manager import ConnectionManager
-from PIL import Image
+import os
 import anthropic as AnthropicClient
 from pydantic import BaseModel
 import warnings
+import logging
+from ntropy_ai.core.utils.settings import logger
 
 class AnthropicConnection():
     """
@@ -17,7 +19,7 @@ class AnthropicConnection():
         Initialize the AnthropicConnection instance.
 
         Args:
-            api_key (str): The API key for OpenAI.
+            api_key (str): The API key for Anthropic.
             other_setting (dict): Additional settings for the connection.
         """
         self.api_key = api_key
@@ -26,18 +28,18 @@ class AnthropicConnection():
 
     def init_connection(self):
         """
-        Initialize the connection to the OpenAI API.
+        Initialize the connection to the Anthropic API.
         """
         try: 
             self.client = AnthropicClient.Anthropic(api_key=self.api_key)
-            print("Anthropic connection initialized successfully.")
+            logger.info("Anthropic connection initialized successfully.")
         except Exception as e:
-            raise Exception(f"Error initializing OpenAI connection: {e}")
+            raise Exception(f"Error initializing Anthropic connection: {e}")
         
 
     def get_client(self):
         """
-        Retrieve the OpenAI client, initializing the connection if necessary.
+        Retrieve the Anthropic client, initializing the connection if necessary.
 
         Returns:
             anthropic.Anthropic: The Anthropic client instance.
@@ -48,7 +50,7 @@ class AnthropicConnection():
     
     def get_other_setting(self):
         """
-        Retrieve other settings related to the OpenAI connection.
+        Retrieve other settings related to the Anthropic connection.
 
         Returns:
             dict: A dictionary containing other settings.
@@ -59,17 +61,17 @@ class AnthropicConnection():
 
 def get_client():
     """
-    Retrieve the OpenAI client from the connection manager.
+    Retrieve the Anthropic client from the connection manager.
 
     Returns:
-        openaiClient.OpenAI: The OpenAI client instance.
+        anthropic.Anthropic: The Anthropic client instance.
     """
     return ConnectionManager().get_connection("Anthropic").get_client()
 
 
 def require_login(func):
     """
-    Decorator to ensure that the OpenAI connection is initialized before calling the function.
+    Decorator to ensure that the Anthropic connection is initialized before calling the function.
 
     Args:
         func (function): The function to be decorated.
@@ -101,7 +103,7 @@ class utils:
                                 "type": "image",
                                 "source": {
                                     "type": "base64",
-                                    "media_type": "image/png", # need to make sure orioginal image is png
+                                    "media_type": f"image/{os.path.splitext(image)[1][1:]}", # need to make sure orioginal image is png
                                     "data": base64.b64encode(open(ensure_local_file(image), "rb").read()).decode('utf-8')
                                 }
                             })
@@ -111,7 +113,7 @@ class utils:
                                     "type": "image",
                                     "source": {
                                         "type": "base64",
-                                        "media_type": "image/png",
+                                        "media_type": f"image/{os.path.splitext(image)[1][1:]}",
                                         "data": base64.b64encode(open(image, "rb").read()).decode('utf-8')
                                     }
                                 })
