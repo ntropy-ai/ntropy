@@ -1,5 +1,19 @@
-
 from ntropy_ai.core.utils.auth_format import *
+import logging
+
+
+# Configure the logger
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
+
+# Create a logger instance
+logger = logging.getLogger('ntropy_ai')
+
 
 
 class ModelsBaseSettings():
@@ -13,7 +27,9 @@ class ModelsBaseSettings():
                 "connect": aws.AWSConnection,
                 "functions": {
                     "embeddings": aws.AWSEmbeddings,
+                    "chat": aws.AWSBedrockModels.chat
                 },
+
                 "embeddings_models": {
                     # input format map because each models has different input format
                     "models_map": {
@@ -25,7 +41,7 @@ class ModelsBaseSettings():
                     "anthropic.claude-3-haiku-20240307-v1:0": aws.AWSBedrockModelsSettings.AnthropicClaude3HaikuInput
                 },
                 'settings': {
-                    'default_s3_bucket': 'ntropy-test'
+                    'default_s3_bucket': 'ntropy-test-2'
                 }
             }
         except ImportError:
@@ -46,7 +62,10 @@ class ModelsBaseSettings():
                     }
                 },
                 "models": {
-                    "gpt-4o": OpenaiModel
+                    "gpt-4o": OpenaiModel,
+                    "gpt-4o-mini": OpenaiModel,
+                    "gpt-4-turbo": OpenaiModel,
+                    "gpt-4": OpenaiModel
                 }
             }
         except ImportError:
@@ -68,11 +87,31 @@ class ModelsBaseSettings():
             self.providers_list_map['Ollama'] = {
                 'functions': {
                     'generate': ollama.OllamaModel.generate,
-                    'chat': ollama.OllamaModel.chat
+                    'chat': ollama.OllamaModel.chat,
+                    'sgenerate': ollama.OllamaModel.sgenerate,
+                    'schat': ollama.OllamaModel.schat,
                 },
                 'models': {
                     model: model for model in ollama.list_models()
                 }
             }
         except Exception: # it can be ImportError or Httpx Ollama connection error (when the Ollama service is not started)
+            pass
+
+        try:
+            from ntropy_ai.core.providers import anthropic
+            self.providers_list_map['Anthropic'] = {
+                "auth": AnthropicAuth,
+                "connect": anthropic.AnthropicConnection,
+                'functions': {
+                    'chat': anthropic.AnthropicModel.chat
+                },
+                "models": {
+                    "claude-3-5-sonnet-20240620": anthropic.AnthropicModel,
+                    "claude-3-opus-20240229": anthropic.AnthropicModel,
+                    "claude-3-sonnet-202402290": anthropic.AnthropicModel,
+                    "claude-3-haiku-20240307": anthropic.AnthropicModel,
+                }
+            }
+        except Exception:
             pass

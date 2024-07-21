@@ -1,13 +1,13 @@
 from ntropy_ai.core.utils.connections_manager import ConnectionManager
-import warnings
-from ntropy_ai.core.providers.pinecone import ServerlessSpec
+from ntropy_ai.core.utils.settings import logger
 from ntropy_ai.core.utils.base_format import Vector, Document
 from typing import List
 from ntropy_ai.core.utils.settings import ModelsBaseSettings
 from ntropy_ai.core import utils
-from ntropy_ai.core.providers.pinecone import Pinecone as PineconeLib
+from pinecone import Pinecone as PineconeLib
+from pinecone import ServerlessSpec
 import json
-
+import logging
 
 def get_client():
     return ConnectionManager().get_connection("Pinecone").get_client()
@@ -28,7 +28,7 @@ class PineconeConnection:
     def init_connection(self):
         try:
             self.client = PineconeLib(api_key=self.api_key)
-            print("Pinecone connection initialized successfully.")
+            logger.info("Pinecone connection initialized successfully.")
         except Exception as e:
             raise Exception(f"Error initializing Pinecone connection: {e}")
         
@@ -53,11 +53,12 @@ class Pinecone:
         self.embedding_model_settings_include_values = None
         if not index_name:
             if not self.other_settings:
-                warnings.warn("No index name specified for Pinecone, please provide an index name !")
+                logger.error("No index name specified for Pinecone, please provide an index name !")
             #if not self.other_settings:
             #    raise Exception("No index name specified for Pinecone, please provide an index name !")
-            self.index_name = self.other_settings.get("index_name", None)
-            warnings.warn(f"No index name specified, using default index {self.index_name}")
+            self.index_name = self.other_settings.get("index_name", None) if self.other_settings else None
+            if self.index_name:
+                logger.warning(f"No index name specified, using default index {self.index_name}")
         else:
             self.index_name = index_name
             try:
@@ -95,7 +96,7 @@ class Pinecone:
     
     def add_vectors(self, vectors: List[Vector], namespace: str = None):
         if vectors[0].document_id or vectors[0].size:
-            warnings.warn("Only the fields 'id' and 'values' are supported by Pinecone. The remaining fields will be stored in 'metadata'.")
+            logger.warning("Only the fields 'id' and 'values' are supported by Pinecone. The remaining fields will be stored in 'metadata'.")
         for v in vectors:
             self.get_index(self.index_name).upsert(
                 vectors=[
@@ -172,7 +173,7 @@ class Pinecone:
                                 query_vector_func = ModelsBaseSettings().providers_list_map[provider]['functions']['embeddings']
                                 break
             else:
-                warnings.warn("using default embedding model")
+                logger.warning("using default embedding model")
                 query_vector_func = self.embedding_func
             if not query_vector_func:
                 raise Exception(f"model {model} not found !")
@@ -189,7 +190,7 @@ class Pinecone:
             query_vector = query_vector_func(model, document, model_settings)
 
         if query_vector.size != query_dimension:
-            warnings.warn(f"query_vector shape does not match the vector store dimension (which is {query_dimension}). use model_settings to set the correct dimension !")
+            logger.warning(f"query_vector shape does not match the vector store dimension (which is {query_dimension}). use model_settings to set the correct dimension !")
 
 
         results =  self.get_index(self.index_name).query(

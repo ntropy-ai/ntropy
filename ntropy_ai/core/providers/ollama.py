@@ -1,12 +1,11 @@
 import ollama
 from pydantic import BaseModel
 from ntropy_ai.core import utils
-from ntropy_ai.core.utils.base_format import Document
-from typing import List
-import warnings
+from ntropy_ai.core.utils.settings import logger
 from ntropy_ai.core.utils.chat import ChatManager
 from ntropy_ai.core.utils import save_img_to_temp_file
-
+import logging
+from ntropy_ai.core.utils.settings import logger
 
 
 def list_models():
@@ -75,7 +74,7 @@ class OllamaModel():
             str: The generated response.
         """
         if self.system_prompt:
-            warnings.warn("system prompt is only supported for chat methods")
+            logger.warning("system prompt is only supported for chat methods")
         if self.retriever:
             context = []
             if query:
@@ -83,7 +82,7 @@ class OllamaModel():
             elif query and image:
                 context.extend(self.retriever(query_image=image))
             if not self.agent_prompt:
-                warnings.warn("agent_prompt is not defined.")
+                logger.warning("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want
@@ -135,7 +134,7 @@ class OllamaModel():
             elif query and image:
                 context.extend(self.retriever(query_image=image))
             if not self.agent_prompt:
-                warnings.warn("agent_prompt is not defined.")
+                logger.warning("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want
@@ -182,7 +181,7 @@ class OllamaModel():
             elif query and image:
                 context.extend(self.retriever(query_image=image))
             if not self.agent_prompt:
-                warnings.warn("agent_prompt is not defined.")
+                logger.warning("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want
@@ -229,7 +228,7 @@ class OllamaModel():
         """
         final_res = ''
         if self.system_prompt:
-            warnings.warn("system prompt is only supported for chat methods")
+            logger.warning("system prompt is only supported for chat methods")
         if self.retriever:
             context = []
             if query:
@@ -237,7 +236,7 @@ class OllamaModel():
             elif query and image:
                 context.extend(self.retriever(query_image=image))
             if not self.agent_prompt:
-                warnings.warn("agent_prompt is not defined.")
+                logger.warning("agent_prompt is not defined.")
             prompt = self.agent_prompt(query=query, context=context)
             final_prompt = prompt.prompt
             # print('used docs: ', prompt.context_doc) access source if you want

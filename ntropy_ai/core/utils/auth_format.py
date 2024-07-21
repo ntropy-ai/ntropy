@@ -26,3 +26,10 @@ class PineconeAuth(BaseModel):
     name: Optional[str] = Field(default=None)
     api_key: str = Field(default=None)
     other_setting: Optional[dict] = Field(default=None)
+
+class AnthropicAuth(BaseModel):
+    id: str = Field(default_factory=lambda: uuid4().hex)
+    service_name: str = Field(default="Anthropic")
+    name: Optional[str] = Field(default=None)
+    api_key: str = Field(default=None)
+    other_setting: Optional[dict] = Field(default=None)

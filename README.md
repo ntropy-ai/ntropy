@@ -1,5 +1,11 @@
 <h1 align="center">Welcome to ntropy-ai 👋</h1>
 <p>
+  <a href="https://www.codefactor.io/repository/github/ntropy-ai/ntropy" target="_blank">
+    <img alt="CodeFactor" src="https://www.codefactor.io/repository/github/ntropy-ai/ntropy/badge" />
+  </a>
+  <a href="https://img.shields.io/github/commit-activity/m/ntropy-ai/ntropy" target="_blank">
+    <img alt="Commit Activity" src="https://img.shields.io/github/commit-activity/m/ntropy-ai/ntropy" />
+  </a>
   <a href="https://ntropy-ai.gitbook.io/ntropy-ai-python-lib-docs" target="_blank">
     <img alt="Documentation" src="https://img.shields.io/badge/documentation-yes-brightgreen.svg" />
   </a>

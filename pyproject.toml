@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ntropy-ai"
-version = "0.0.5-alpha"
+version = "0.0.6-alpha"
 description = "Unleash the power of multimodal agents"
 authors = ["Hugo Le Belzic <hugolebelzic@gmail.com>"]
 license = "AGPL-3.0"
@@ -31,8 +31,9 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.extras]
 providers_aws = ["boto3", "botocore", "opensearch-py"]
-providers_openai = ["openai", "torch", "torchvision"]
+providers_openai = ["openai", "torch", "torchvision"] # pip install git+https://github.com/openai/CLIP.git
 providers_ollama = ["ollama"]
+providers_anthropic = ["anthropic"]
 document_instance_pdf = ["pymupdf"]
 document_instance_html = ["beautifulsoup4"]
 rag_vectorstore_pinecone = ["pinecone-client"]

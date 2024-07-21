@@ -7,6 +7,8 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 from cryptography.hazmat.primitives import serialization, hashes
 from ntropy_ai.core.utils.settings import ModelsBaseSettings
 from ntropy_ai.core.utils.connections_manager import ConnectionManager
+import logging
+
 
 class BaseAuth():
     """
@@ -70,12 +72,12 @@ class BaseAuth():
         if os.path.exists(self.db_location):
             response = input("Database already exists. Do you want to override it? (yes/no): ")
             if response.lower() != 'yes':
-                print("Operation cancelled.")
+                logging.info("Operation cancelled.")
                 return
         else:
             if not os.path.exists(self.db_base_path):
                 os.makedirs(self.db_base_path, exist_ok=True)
-        print("Creating database...")
+        logging.info("Creating database...")
         if os.path.exists(self.db_location):
             os.remove(self.db_location)
         self.db = sqlite3.connect(self.db_location)
@@ -97,12 +99,12 @@ class BaseAuth():
             format=serialization.PrivateFormat.TraditionalOpenSSL,
             encryption_algorithm=serialization.NoEncryption()
         )
-        print("Save this private key securely. You will need it to decrypt your data:")
+        logging.info("Save this private key securely. You will need it to decrypt your data:")
         print(private_key_pem.decode('utf-8'))
         with open(os.path.join(self.db_base_path, "private_key.pem"), 'wb') as file:
             file.write(private_key_pem)
         file.close()
-        print("Private key saved to: ", os.path.join(self.db_base_path, "private_key.pem"))
+        logging.info("Private key saved to: ", os.path.join(self.db_base_path, "private_key.pem"))
 
         # Create tables in the database
         self.db.execute("CREATE TABLE IF NOT EXISTS auth (public_key BLOB)")
@@ -256,12 +258,12 @@ class BaseAuth():
         provider_count = cursor.fetchone()[0]
         
         if provider_count == 0:
-            print(f"No provider found with the service_name: {provider_name}")
+            logging.info(f"No provider found with the service_name: {provider_name}")
             return
         
         cursor.execute("DELETE FROM providers WHERE service_name = ?", (provider_name,))
         self.db.commit()
-        print(f"Provider '{provider_name}' deleted successfully.")
+        logging.info(f"Provider '{provider_name}' deleted successfully.")
 
     def get_creds(self, provider: BaseModel = None):
         """

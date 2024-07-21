@@ -32,7 +32,8 @@ def save_img_to_temp_file(image_url: str, return_doc: bool = False):
 def ensure_local_file(remote_file_path: str) -> str:
     if remote_file_path.startswith('http'):
         response = requests.get(remote_file_path)
-        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        ext = os.path.splitext(remote_file_path)[1]  # Extract the file extension
+        with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as temp_file:
             temp_file.write(response.content)
             return temp_file.name
     else:
@@ -43,11 +44,13 @@ def clear_cache():
         os.remove(file)
     print('cache cleared !')
 
+    
 def resize_image(image_path: str, max_size: int = 1024):
     img = Image.open(image_path)
     img.thumbnail((max_size, max_size), Image.LANCZOS)  # Preserves aspect ratio
-    img.save(image_path)
-    return image_path
+    new_image_path = os.path.splitext(image_path)[0] + ".png"
+    img.save(new_image_path, "PNG")
+    return new_image_path
 
 class Loader:
     def __init__(self, desc="Loading...", end="Done!", timeout=0.1):
@@ -90,4 +93,3 @@ class Loader:
     def __exit__(self, exc_type, exc_value, tb):
         # handle exceptions with those variables ^
         self.stop()
-
