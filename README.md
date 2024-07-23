@@ -15,8 +15,6 @@
   <a href="https://twitter.com/hugolb05" target="_blank">
     <img alt="Twitter: hugolb05" src="https://img.shields.io/twitter/follow/hugolb05.svg?style=social" />
   </a>
-    <a href="https://x.com/ZorkotDasha" target="_blank">
-    <img alt="Twitter: ZorkotDasha" src="https://img.shields.io/twitter/follow/ZorkotDasha.svg?style=social" />
   </a>
 </p>
 
@@ -30,11 +28,11 @@ pip install ntropy-ai
 
 ## Authors
 
-👤 **Hugo Le Belzic & Darya Todoskova**
+👤 **Hugo Le Belzic**
 
-* Twitter: [@hugolb05](https://twitter.com/hugolb05) & [@ZorkotDasha](https://twitter.com/ZorkotDasha)
-* Github: [@HugoLB0](https://github.com/HugoLB0) & [@zorkotdasha](https://github.com/daryatodoskova)
-* LinkedIn: [@hugolebelzic](https://linkedin.com/in/hugolebelzic) & [@zorkotdasha](https://www.linkedin.com/in/darya-todoskova-zorkot-3005181b8/)
+* Twitter: [@hugolb05](https://twitter.com/hugolb05)
+* Github: [@HugoLB0](https://github.com/HugoLB0)
+* LinkedIn: [@hugolebelzic](https://linkedin.com/in/hugolebelzic)
 
 ## 🤝 Contributing
 
@@ -46,6 +44,6 @@ Give a ⭐️ if this project helped you!
 
 ## 📝 License
 
-Copyright © 2024 [Hugo Le Belzic](https://github.com/HugoLB0) & [Darya Todoskova](https://github.com/daryatodoskova).<br />
+Copyright © 2024 [Hugo Le Belzic](https://github.com/HugoLB0) <br />
 This project is [AGPL--3.0 ](https://github.com/ntropy-ai/ntropy/blob/main/LICENSE.txt) licensed.
 
