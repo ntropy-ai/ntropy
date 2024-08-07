@@ -28,6 +28,12 @@ pip install ntropy-ai
 
 ## Authors
 
+👤 **Darya TODOSKOVA**
+
+* Twitter: [@ZorkotDasha](https://x.com/ZorkotDasha)
+* Github: [daryatodoskova](https://github.com/daryatodoskova)
+* LinkedIn: [Darya Todoskova Zorkot](https://www.linkedin.com/in/darya-todoskova-zorkot-3005181b8/)
+
 👤 **Hugo Le Belzic**
 
 * Twitter: [@hugolb05](https://twitter.com/hugolb05)
